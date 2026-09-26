@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bounded_contexts/journal/presentation/home_page.dart';
 
@@ -8,6 +9,8 @@ class BeerLoggerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(title: 'Пивомер', home: HomePage());
+    return const ProviderScope(
+      child: MaterialApp(title: 'Пивомер', home: HomePage()),
+    );
   }
 }

@@ -4,6 +4,11 @@
 library;
 
 export 'application/axis_record_inputs.dart';
+export 'application/clicks_for_today.cg.dart';
+export 'application/record_click.cg.dart';
+export 'application/today_balance.cg.dart';
+export 'application/undo_last_click.cg.dart';
+export 'application/volume_for_last_7_days.cg.dart';
 export 'domain/click/aggregate_for_period.dart';
 export 'domain/click/axis_contribution.dart';
 export 'domain/click/axis_record_input.dart';

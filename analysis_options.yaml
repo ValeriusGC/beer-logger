@@ -17,6 +17,7 @@ analyzer:
     - android/**
     - ios/**
     - web/**
+    - '**/*.g.dart'
     # VM-тесты core — отдельный job: dart analyze в packages/beer_ledger_core
     - packages/beer_ledger_core/test/**
 
