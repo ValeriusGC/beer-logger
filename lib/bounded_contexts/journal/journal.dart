@@ -23,3 +23,4 @@ export 'presentation/today_balance_card.dart';
 export 'presentation/today_balance_format.dart';
 export 'presentation/today_clicks_format.dart';
 export 'presentation/today_clicks_section.dart';
+export 'presentation/week_volume_chart.dart';

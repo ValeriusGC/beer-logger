@@ -10,3 +10,5 @@ export 'domain/clicker/clicker.dart';
 export 'domain/clicker/clicker_id.dart';
 export 'domain/clicker/clicker_settings_repository.dart';
 export 'domain/clicker/ledger_axis.dart';
+export 'presentation/portion_input.dart';
+export 'presentation/settings_page.dart';
