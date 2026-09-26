@@ -3,6 +3,7 @@
 /// Отвечает на вопрос: что будет при нажатии сейчас.
 library;
 
+export 'application/current_clicker.cg.dart';
 export 'domain/clicker/axis_sign.dart';
 export 'domain/clicker/beer_half_liter.dart';
 export 'domain/clicker/clicker.dart';
