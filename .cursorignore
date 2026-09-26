@@ -1,0 +1,20 @@
+# Build & tooling
+build/
+**/.dart_tool/
+**/.idea/
+**/*.iml
+android/.gradle/
+ios/Pods/
+ios/.symlinks/
+macos/Pods/
+
+# Codegen
+**/*.g.dart
+**/*.freezed.dart
+**/*.gr.dart
+**/*.config.dart
+**/*.f.dart
+bricks/
+
+# Master kit (не индексировать инструкции в deployed repo)
+tools/flutter-cursor-ai-setup/
