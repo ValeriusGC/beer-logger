@@ -30,14 +30,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   beer_ledger_core:
     path: packages/beer_ledger_core
   cupertino_icons: ^1.0.8
+  fl_chart: ^1.2.0
+  go_router: ^18.0.1
   drift: ^2.34.3
   drift_flutter: ^0.3.1
   flutter_riverpod: ^3.3.2
   fpdart: ^1.2.0
   freezed_annotation: ^3.1.0
+  intl: any
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.3
   uuid: ^4.6.0
@@ -68,6 +73,7 @@ hooks:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bounded_contexts/journal/presentation/home_page.dart';
+import '../l10n/app_localizations.dart';
+import 'router.dart';
 
 /// Корневая оболочка приложения.
 class BeerLoggerApp extends StatelessWidget {
@@ -9,8 +10,17 @@ class BeerLoggerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ProviderScope(
-      child: MaterialApp(title: 'Пивомер', home: HomePage()),
+    return ProviderScope(
+      child: MaterialApp.router(
+        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: beerLoggerRouter,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber),
+          useMaterial3: true,
+        ),
+      ),
     );
   }
 }
