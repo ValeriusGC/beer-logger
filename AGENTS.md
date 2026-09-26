@@ -1,18 +1,18 @@
 # AGENTS.md — beer_logger (Пивомер)
 
 **Дата создания:** 2026-09-26 13:49:17 +0300  
-**Последнее обновление:** 2026-09-26 13:49:17 +0300  
-**Версия:** 1
+**Последнее обновление:** 2026-09-26 14:37:30 +0300  
+**Версия:** 2
 
 Инструкции для AI-агентов в Cursor. Flutter/Dart-проект.
 
 ## Стек
 
 - Flutter-приложение `beer_logger` (Пивомер), SDK `^3.13.4`
-- Path-зависимость `packages/beer_ledger_core` — pure Dart без Flutter (stub на шаге 01)
+- Path-зависимость `packages/beer_ledger_core` — pure Dart без Flutter; fpdart + freezed `Failure`; VM-тесты `dart test`
 - Два bounded context: `portion` и `journal` в `lib/bounded_contexts/`
-- `flutter_riverpod`, `drift`, `go_router`, gen-l10n — **не подключены** (появятся на следующих шагах)
-- CI: `flutter analyze --fatal-warnings` в `.github/workflows/ci.yml`
+- `flutter_riverpod`, `drift`, `go_router`, gen-l10n — **не подключены** (появятся на шаге 05)
+- CI: job `core` — `dart analyze` и `dart test` пакета; job `app` — `flutter analyze --fatal-warnings` и `flutter test`
 
 ## Архитектура
 
