@@ -9,7 +9,21 @@ on:
       - main
 
 jobs:
-  analyze:
+  core:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/beer_ledger_core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart analyze --fatal-warnings
+      - run: dart test
+
+  app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +32,4 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter analyze --fatal-warnings
+      - run: flutter test
