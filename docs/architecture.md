@@ -1,8 +1,8 @@
 # Архитектура Пивомера
 
 **Дата создания:** 2026-09-25 15:23:47 +0300  
-**Последнее обновление:** 2026-09-26 17:51:50 +0300  
-**Версия:** 4  
+**Последнее обновление:** 2026-09-26 19:57:28 +0300  
+**Версия:** 5  
 **Вид документа:** спецификация
 
 Пивомер — offline-приложение с trade-off tap: одно нажатие фиксирует несколько осей учёта (объём, ккал, деньги, удовольствие). Архитектура разделяет живые настройки и уже случившиеся факты, чтобы изменение ккал сегодня не переписывало вчерашние записи.
@@ -13,7 +13,7 @@
 
 **Журнал** — факты, которые уже случились: записанные тапы, балансы за период, история. Журнал не знает, какими настройками пользователь тапнет завтра.
 
-Карточка баланса и график — не третий контекст. Это presentation журнала: UI-проекция уже записанных фактов. Появятся на шаге 06.
+Карточка баланса и график — не третий контекст. Это presentation журнала: UI-проекция уже записанных фактов.
 
 ## Слои внутри контекста
 
@@ -68,7 +68,7 @@ presentation → application → domain ← infrastructure
 - `core/persistence/` — [AppDatabase] (`schemaVersion: 1`, файл `beer_logger`).
 - `core/di/` — провайдеры `appDatabase`, `clickRepository`, `clickerSettingsRepository`, `now`.
 
-`lib/app/` — оболочка: [ProviderScope] вокруг `MaterialApp`, позже роутер.
+`lib/app/` — оболочка: [ProviderScope] вокруг `MaterialApp.router`, маршруты в `router.dart`.
 
 ## Persistence и Riverpod
 
@@ -79,17 +79,39 @@ presentation → application → domain ← infrastructure
    - порция: `current_clicker`.
    - Отвергнуто: `lib/app/providers/`.
 4. **Запись тапа** — [record_click] берёт текущую порцию из `currentClicker`, не из зашитого пресета. [Click.record] по-прежнему принимает `List<AxisRecordInput>`, не [Clicker]. Момент тапа — свежий `now` через `ref.refresh`.
-5. **Главная** — заглушка до шага 06. Карточка баланса и график не появляются.
+
+## UI Projection главной
+
+Главная собрана в `journal/presentation/home/` по цепочке:
+
+```
+факты application/domain
+        → Factory (пустой день? кнопка активна?)
+        → Projection (данные без строк UI)
+        → Builder (l10n + formatToday*)
+        → UiModel (готовые строки)
+        → dumb Widget (рисует UiModel, зовёт callback)
+```
+
+[HomePage] оркестрирует: `watch(homeProjectionProvider)`, [HomeUiModelBuilder], `ref.listen` на запись и undo, layout `>= 600` через `MediaQuery`. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.push('/settings')`, не Factory.
+
+[TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekVolumeChart] смотрит `volumeForLast7DaysProvider` сам и в Factory не входит: график рисует готовые литры.
+
+Отвергнуто: считать оси в `build` виджета. Отвергнуто: третий bounded context «витрина».
+
+## Настройки порции
+
+Экран `portion/presentation/settings_page.dart` — поля и Save, без Factory. Четыре числа живой порции; смена ккал не переписывает уже записанные тапы.
+
+## Маршрутизация и локализация
+
+Два маршрута: `/` (главная) и `/settings` (порция). Flavors нет.
+
+Локализация gen-l10n: русский и английский (`lib/l10n/`). Пользовательские строки UI — из l10n, не литералы в `build`.
 
 ## Границы между контекстами
 
 Соседний `domain/` не импортируется напрямую. Мост порция → журнал — [axisRecordInputsFrom] в `journal/application/`.
-
-## Следующие шаги
-
-| Шаг | Содержание |
-|-----|------------|
-| 06 | UI Projection главной |
 
 ## Дерево папок
 
@@ -97,7 +119,12 @@ presentation → application → domain ← infrastructure
 lib/
 ├── main.dart
 ├── app/
-│   └── app.dart
+│   ├── app.dart
+│   └── router.dart
+├── l10n/
+│   ├── app_en.arb
+│   ├── app_ru.arb
+│   └── app_localizations.dart
 ├── core/
 │   ├── di/
 │   │   ├── app_database.cg.dart
@@ -109,46 +136,24 @@ lib/
 └── bounded_contexts/
     ├── portion/
     │   ├── portion.dart
-    │   ├── domain/
-    │   │   └── clicker/
-    │   │       ├── axis_sign.dart
-    │   │       ├── beer_half_liter.dart
-    │   │       ├── clicker.dart
-    │   │       ├── clicker_id.dart
-    │   │       ├── clicker_settings_repository.dart
-    │   │       └── ledger_axis.dart
-    │   ├── application/
-    │   │   └── current_clicker.cg.dart
-    │   ├── infrastructure/
-    │   │   ├── clicker_settings_mapper.dart
-    │   │   └── drift_clicker_settings_repository.dart
+    │   ├── domain/clicker/…
+    │   ├── application/current_clicker.cg.dart
+    │   ├── infrastructure/…
     │   └── presentation/
+    │       ├── portion_input.dart
+    │       └── settings_page.dart
     └── journal/
         ├── journal.dart
-        ├── domain/
-        │   └── click/
-        │       ├── aggregate_for_period.dart
-        │       ├── axis_contribution.dart
-        │       ├── axis_record_input.dart
-        │       ├── click.dart
-        │       ├── click_id.dart
-        │       ├── click_repository.dart
-        │       ├── period_balances.dart
-        │       └── signed_base_delta.dart
-        ├── application/
-        │   ├── axis_record_inputs.dart
-        │   ├── clicks_for_today.cg.dart
-        │   ├── record_click.cg.dart
-        │   ├── today_balance.cg.dart
-        │   ├── undo_last_click.cg.dart
-        │   └── volume_for_last_7_days.cg.dart
-        ├── infrastructure/
-        │   ├── click_mapper.dart
-        │   ├── day_boundaries.dart
-        │   ├── drift_click_repository.dart
-        │   └── ledger_axis_kind_wire.dart
+        ├── domain/click/…
+        ├── application/…
+        ├── infrastructure/…
         └── presentation/
-            └── home_page.dart
+            ├── home/
+            │   ├── home_page.dart
+            │   ├── home_projection_factory.dart
+            │   ├── home_ui_model_builder.dart
+            │   └── …
+            ├── today_balance_card.dart
+            ├── today_clicks_section.dart
+            └── week_volume_chart.dart
 ```
-
-`home_page.dart` — заглушка «Пивомер» до шага 06.
