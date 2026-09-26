@@ -1,0 +1,9 @@
+name: beer_ledger_core
+description: Техническое ядро Пивомера — единицы, Result, маркеры DDD.
+publish_to: none
+
+environment:
+  sdk: ^3.13.4
+
+dev_dependencies:
+  lints: ^6.0.0
