@@ -33,14 +33,22 @@ dependencies:
   beer_ledger_core:
     path: packages/beer_ledger_core
   cupertino_icons: ^1.0.8
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  flutter_riverpod: ^3.3.2
   fpdart: ^1.2.0
   freezed_annotation: ^3.1.0
+  path_provider: ^2.1.6
+  riverpod_annotation: ^4.0.3
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.13.0
+  drift_dev: ^2.34.0
   freezed: ^3.2.5
+  riverpod_generator: ^4.0.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -51,6 +59,12 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# Системный SQLite: без скачивания libsqlite3 с GitHub при сборке (iOS/Android/macOS/Linux).
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
 
 # The following section is specific to Flutter packages.
 flutter:
