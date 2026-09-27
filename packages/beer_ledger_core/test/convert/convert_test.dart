@@ -11,7 +11,7 @@ void main() {
         to: VolumeUnit.milliliter,
       );
 
-      expect(result, const Right(500.0));
+      expect(result, const Right<Failure, double>(500.0));
     });
 
     test('килограмм в фунты', () {
@@ -48,7 +48,7 @@ void main() {
         to: VolumeUnit.liter,
       );
 
-      expect(result, const Right(0.5));
+      expect(result, const Right<Failure, double>(0.5));
     });
 
     test('несовместимые семейства → Failure.incompatibleUnits', () {
@@ -60,7 +60,7 @@ void main() {
 
       expect(
         result,
-        Left(
+        Left<Failure, double>(
           Failure.incompatibleUnits(
             fromId: VolumeUnit.liter.id,
             toId: MoneyUnit.rouble.id,
@@ -96,7 +96,7 @@ void main() {
         to: VolumeUnit.milliliter,
       );
 
-      expect(result, const Right(-500.0));
+      expect(result, const Right<Failure, double>(-500.0));
     });
   });
 

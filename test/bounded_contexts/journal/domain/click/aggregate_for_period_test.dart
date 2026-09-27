@@ -106,7 +106,12 @@ void main() {
         to: to,
       );
 
-      expect(result, Left(Failure.invalidPeriod(from: from, to: to)));
+      expect(
+        result,
+        Left<Failure, PeriodBalances>(
+          Failure.invalidPeriod(from: from, to: to),
+        ),
+      );
     });
 
     test('граница: at == from включён', () {

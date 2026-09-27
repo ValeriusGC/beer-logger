@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:beer_logger/bounded_contexts/journal/application/record_click.cg.dart';
 import 'package:beer_logger/bounded_contexts/journal/application/undo_last_click.cg.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_controller.cg.dart';
@@ -33,7 +35,7 @@ class HomePage extends ConsumerWidget {
             .showSnackBar(SnackBar(content: Text(l10n.recordClickError)));
       }
       if (previous?.isLoading == true && !next.isLoading && !next.hasError) {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
       }
     });
 
