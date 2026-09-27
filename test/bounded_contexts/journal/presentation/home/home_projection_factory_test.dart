@@ -68,4 +68,23 @@ void main() {
 
     expect(projection.balance, isA<HomeBalanceProjectionLoading>());
   });
+
+  test('reload с прошлым значением не схлопывает карточку и журнал', () {
+    final balances = _emptyBalances();
+    // ignore: invalid_use_of_internal_member
+    final balance = const AsyncLoading<PeriodBalances>().copyWithPrevious(
+      AsyncData(balances),
+      isRefresh: false,
+    );
+    // ignore: invalid_use_of_internal_member
+    final clicks = const AsyncLoading<List<Click>>().copyWithPrevious(
+      const AsyncData(<Click>[]),
+      isRefresh: false,
+    );
+
+    final projection = _projection(balance: balance, clicks: clicks);
+
+    expect(projection.balance, isA<HomeBalanceProjectionReady>());
+    expect(projection.journal, isA<HomeJournalProjectionEmpty>());
+  });
 }

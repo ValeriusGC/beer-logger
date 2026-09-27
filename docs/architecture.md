@@ -1,8 +1,8 @@
 # Архитектура Пивомера
 
 **Дата создания:** 2026-09-25 15:23:47 +0300  
-**Последнее обновление:** 2026-09-26 19:57:28 +0300  
-**Версия:** 5  
+**Последнее обновление:** 2026-09-26 21:50:07 +0300  
+**Версия:** 7  
 **Вид документа:** спецификация
 
 Пивомер — offline-приложение с trade-off tap: одно нажатие фиксирует несколько осей учёта (объём, ккал, деньги, удовольствие). Архитектура разделяет живые настройки и уже случившиеся факты, чтобы изменение ккал сегодня не переписывало вчерашние записи.
@@ -78,7 +78,7 @@ presentation → application → domain ← infrastructure
    - журнал: `record_click`, `undo_last_click`, `clicks_for_today`, `today_balance`, `volume_for_last_7_days`;
    - порция: `current_clicker`.
    - Отвергнуто: `lib/app/providers/`.
-4. **Запись тапа** — [record_click] берёт текущую порцию из `currentClicker`, не из зашитого пресета. [Click.record] по-прежнему принимает `List<AxisRecordInput>`, не [Clicker]. Момент тапа — свежий `now` через `ref.refresh`.
+4. **Запись тапа** — [record_click] берёт текущую порцию из `currentClicker`, не из зашитого пресета. [Click.record] по-прежнему принимает `List<AxisRecordInput>`, не [Clicker]. Момент тапа — свежий `DateTime.now()` в тот же календарный день, без [Ref.refresh] кэша `now`. Инвалидация границ дня на каждый тап переводила запросы в reload и на кадр подменяла карточки индикатором.
 
 ## UI Projection главной
 
@@ -93,7 +93,7 @@ presentation → application → domain ← infrastructure
         → dumb Widget (рисует UiModel, зовёт callback)
 ```
 
-[HomePage] оркестрирует: `watch(homeProjectionProvider)`, [HomeUiModelBuilder], `ref.listen` на запись и undo, layout `>= 600` через `MediaQuery`. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.push('/settings')`, не Factory.
+[HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Layout `>= 600` — `MediaQuery`. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
 
 [TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekVolumeChart] смотрит `volumeForLast7DaysProvider` сам и в Factory не входит: график рисует готовые литры.
 
@@ -105,7 +105,7 @@ presentation → application → domain ← infrastructure
 
 ## Маршрутизация и локализация
 
-Два маршрута: `/` (главная) и `/settings` (порция). Flavors нет.
+Один корень `/` (главная) и дочерний `settings` — полный путь `/settings` (порция). Переход — `go`: стек берётся из дерева маршрутов, под настройками остаётся главная. `push` отвергнут: он кладёт страницу императивно, мимо этого дерева. Flavors нет.
 
 Локализация gen-l10n: русский и английский (`lib/l10n/`). Пользовательские строки UI — из l10n, не литералы в `build`.
 

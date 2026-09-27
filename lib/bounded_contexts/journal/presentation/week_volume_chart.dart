@@ -9,7 +9,8 @@ import 'package:intl/intl.dart';
 ///
 /// Читает [volumeForLast7DaysProvider]. В репозиторий не ходит и литры не
 /// считает: значения уже в литрах. Пустая неделя — семь нулевых столбцов.
-/// Тап по столбцу никуда не ведёт.
+/// Тап по столбцу никуда не ведёт. Повторная загрузка оставляет прошлый
+/// график. [RepaintBoundary] отделяет его отрисовку от остальной главной.
 class WeekVolumeChart extends ConsumerWidget {
   /// Создаёт график, который подписывается на объём за неделю.
   const WeekVolumeChart({super.key});
@@ -17,16 +18,22 @@ class WeekVolumeChart extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return ref
-        .watch(volumeForLast7DaysProvider)
-        .when(
-          loading: () => const CircularProgressIndicator(),
-          error: (Object _, StackTrace _) => Text(l10n.weekChartLoadError),
-          data: (days) => _WeekChart(days: days, title: l10n.weekChartTitle),
-        );
+    return RepaintBoundary(
+      child: ref
+          .watch(volumeForLast7DaysProvider)
+          .when(
+            skipLoadingOnReload: true,
+            loading: () => const CircularProgressIndicator(),
+            error: (Object _, StackTrace _) => Text(l10n.weekChartLoadError),
+            data: (days) => _WeekChart(days: days, title: l10n.weekChartTitle),
+          ),
+    );
   }
 }
 
+/// Dumb-виджет столбчатого графика: [BarChart] по готовым [DayVolume].
+///
+/// Провайдеры не смотрит — только рисует [days] и подписи дней недели.
 class _WeekChart extends StatelessWidget {
   const _WeekChart({required this.days, required this.title});
 

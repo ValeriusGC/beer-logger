@@ -17,8 +17,8 @@ part 'record_click.cg.g.dart';
 ///
 /// Виджет [ClickRepository] не вызывает. Порцию берёт из [currentClicker],
 /// не из зашитого пресета. Баланс за сегодня подхватывает тап сам, через
-/// уже существующий поток. Момент тапа — свежий [now]: провайдер кэшируется,
-/// пока его смотрит экран, поэтому запись его обновляет.
+/// уже существующий поток. Момент тапа — [_tapInstant]: свежие часы,
+/// без [Ref.refresh] кэша [now] в тот же календарный день.
 @riverpod
 class RecordClick extends _$RecordClick {
   /// Полезных данных нет: кнопка смотрит только на загрузку и ошибку.
@@ -54,7 +54,7 @@ class RecordClick extends _$RecordClick {
     final recorded = Click.record(
       id: ClickId.known(const Uuid().v4()),
       clickerId: clicker.id,
-      at: ref.refresh(nowProvider),
+      at: _tapInstant(ref),
       axes: axisRecordInputsFrom(clicker),
     );
 
@@ -70,4 +70,20 @@ class RecordClick extends _$RecordClick {
       (_) => state = const AsyncData(null),
     );
   }
+}
+
+/// Момент тапа. В тот же календарный день не трогает кэш [now].
+///
+/// [Ref.refresh] переводит все `watch(now)` в reload. Журнал, баланс и
+/// график на кадр становятся индикаторами, и главная дёргается.
+/// Другой день — один refresh, чтобы «сегодня» переехало вместе с тапом.
+DateTime _tapInstant(Ref ref) {
+  final cached = ref.read(nowProvider);
+  final fresh = DateTime.now();
+  final sameDay =
+      cached.year == fresh.year &&
+      cached.month == fresh.month &&
+      cached.day == fresh.day;
+  if (!sameDay) return ref.refresh(nowProvider);
+  return fresh;
 }
