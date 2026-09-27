@@ -66,7 +66,10 @@ void main() {
         ],
       );
 
-      expect(result, const Left(Failure.unknownUnitId(id: 'volume.unknown')));
+      expect(
+        result,
+        const Left<Failure, Click>(Failure.unknownUnitId(id: 'volume.unknown')),
+      );
     });
 
     test('смена конфигурации Clicker не меняет уже записанный Click', () {

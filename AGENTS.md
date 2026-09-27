@@ -1,8 +1,8 @@
 # AGENTS.md — beer_logger (Пивомер)
 
 **Дата создания:** 2026-09-26 13:49:17 +0300  
-**Последнее обновление:** 2026-09-26 19:57:28 +0300  
-**Версия:** 5
+**Последнее обновление:** 2026-09-27 14:09:05 +0300  
+**Версия:** 6
 
 Инструкции для AI-агентов в Cursor. Flutter/Dart-проект.
 
@@ -13,7 +13,8 @@
 - Два bounded context: `portion` и `journal` в `lib/bounded_contexts/`; агрегаты Clicker (порция) и Click (журнал)
 - `drift`, `flutter_riverpod` 3, `go_router`, gen-l10n RU+EN, `fl_chart` подключены; flavors нет
 - Главная — UI Projection в `journal/presentation/home/`
-- CI: job `core` — `dart analyze` и `dart test` пакета; job `app` — `flutter analyze --fatal-warnings` и `flutter test`
+- Strict analysis: `strict-casts` / `strict-inference` / `strict-raw-types`; линты `unawaited_futures`, `discarded_futures`, `avoid_dynamic_calls`, `cancel_subscriptions`, `close_sinks`
+- CI: job `core` — `dart analyze --fatal-infos --fatal-warnings` и `dart test`; job `app` — `flutter analyze --fatal-infos --fatal-warnings` и `flutter test`
 
 ## Архитектура
 
@@ -109,7 +110,7 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Pre-delivery
 
-1. `flutter analyze` — без новых errors в затронутых файлах
+1. `flutter analyze --fatal-infos --fatal-warnings` — лог пустой
 2. `/delivery-checklist`
 3. Реестры обновлены при новом shared-коде
 4. Тесты при изменении логики: `flutter test <path>`

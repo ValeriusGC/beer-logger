@@ -48,9 +48,11 @@ void main() {
     test('Right propagates through flatMap', () {
       const Result<int> source = Right(2);
 
-      final Result<int> next = source.flatMap((n) => Right(n * 3));
+      final Result<int> next = source.flatMap(
+        (n) => Right<Failure, int>(n * 3),
+      );
 
-      expect(next, const Right(2 * 3));
+      expect(next, const Right<Failure, int>(2 * 3));
     });
 
     test('Left short-circuits flatMap without running callback', () {
@@ -63,7 +65,7 @@ void main() {
       var callbackRan = false;
       final Result<int> next = source.flatMap((n) {
         callbackRan = true;
-        return Right(n * 3);
+        return Right<Failure, int>(n * 3);
       });
 
       expect(callbackRan, isFalse);

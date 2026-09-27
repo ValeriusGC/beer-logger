@@ -20,7 +20,7 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
-      - run: dart analyze --fatal-warnings
+      - run: dart analyze --fatal-infos --fatal-warnings
       - run: dart test
 
   app:
@@ -31,5 +31,5 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter analyze --fatal-warnings
+      - run: flutter analyze --fatal-infos --fatal-warnings
       - run: flutter test

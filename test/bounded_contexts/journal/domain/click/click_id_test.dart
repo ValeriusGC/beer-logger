@@ -11,14 +11,20 @@ void main() {
   });
 
   test('ClickId.parse пустая строка — Failure.emptyId', () {
-    expect(ClickId.parse(''), const Left(Failure.emptyId()));
+    expect(ClickId.parse(''), const Left<Failure, ClickId>(Failure.emptyId()));
   });
 
   test('ClickId.parse непустая строка — known', () {
-    expect(ClickId.parse('a'), Right(const ClickId.known('a')));
+    expect(
+      ClickId.parse('a'),
+      const Right<Failure, ClickId>(ClickId.known('a')),
+    );
   });
 
   test('ClickId.parse пробел — known, не emptyId', () {
-    expect(ClickId.parse(' '), Right(const ClickId.known(' ')));
+    expect(
+      ClickId.parse(' '),
+      const Right<Failure, ClickId>(ClickId.known(' ')),
+    );
   });
 }
