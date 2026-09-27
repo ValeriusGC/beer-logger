@@ -48,6 +48,19 @@ void main() {
     expect(find.byType(BarChart), findsNothing);
   });
 
+  testWidgets('reload оставляет график', (tester) async {
+    // ignore: invalid_use_of_internal_member
+    final reloading = const AsyncLoading<List<DayVolume>>().copyWithPrevious(
+      AsyncData(_week()),
+      isRefresh: false,
+    );
+
+    await _pump(tester, reloading);
+
+    expect(find.byType(BarChart), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
   testWidgets('error — текст l10n, без графика', (tester) async {
     await _pump(
       tester,

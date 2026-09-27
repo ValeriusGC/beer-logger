@@ -8,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Собирает [HomeProjection] из AsyncValue application-провайдеров.
 class HomeProjectionFactory {
   /// Решения loading/error/empty и флаги кнопок — только здесь.
+  ///
+  /// Повторная загрузка с уже показанными данными не подменяет карточку
+  /// и журнал индикатором: иначе высота секций схлопывается и экран дёргается.
   static HomeProjection from({
     required AsyncValue<PeriodBalances> balance,
     required AsyncValue<List<Click>> clicks,
@@ -16,12 +19,14 @@ class HomeProjectionFactory {
     required AsyncValue<void> undo,
   }) {
     final balanceProjection = balance.when(
+      skipLoadingOnReload: true,
       loading: () => const HomeBalanceProjection.loading(),
       error: (_, _) => const HomeBalanceProjection.error(),
       data: HomeBalanceProjection.ready,
     );
 
     final journalProjection = clicks.when(
+      skipLoadingOnReload: true,
       loading: () => const HomeJournalProjection.loading(),
       error: (_, _) => const HomeJournalProjection.error(),
       data: (items) => items.isEmpty

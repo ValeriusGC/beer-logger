@@ -67,34 +67,3 @@ final class HomeJournalUiRows extends HomeJournalUiModel {
   /// Отформатированные строки списка.
   final List<HomeJournalRowUiModel> rows;
 }
-
-/// Готовые строки и флаги главной для dumb-виджетов.
-class HomeUiModel {
-  /// Собирает данные экрана после Builder.
-  const HomeUiModel({
-    required this.balance,
-    required this.journal,
-    required this.tapEnabled,
-    required this.tapLabel,
-    required this.undoEnabled,
-    required this.undoLabel,
-  });
-
-  /// Состояние карточки четырёх итогов.
-  final HomeBalanceUiModel balance;
-
-  /// Состояние журнала тапов.
-  final HomeJournalUiModel journal;
-
-  /// Кнопка записи активна.
-  final bool tapEnabled;
-
-  /// Подпись кнопки записи.
-  final String tapLabel;
-
-  /// Кнопка undo активна.
-  final bool undoEnabled;
-
-  /// Подпись кнопки undo.
-  final String undoLabel;
-}

@@ -2,33 +2,38 @@ import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_proj
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_format.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_clicks_format.dart';
+import 'package:beer_logger/bounded_contexts/portion/domain/clicker/clicker.dart';
 import 'package:beer_logger/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 
-/// Переводит [HomeProjection] в [HomeUiModel] с l10n и форматтерами.
+/// Форматирует срезы [HomeProjection] в UiModel. Единственное место `formatToday*`.
 class HomeUiModelBuilder {
-  /// Единственное место вызова `formatToday*` и `formatRecordBeerVolume`.
-  static HomeUiModel build({
-    required HomeProjection projection,
+  /// Карточка баланса.
+  static HomeBalanceUiModel balance({
+    required HomeBalanceProjection projection,
+    required AppLocalizations l10n,
+    required String languageCode,
+  }) {
+    return _balanceUiModel(projection, l10n: l10n, languageCode: languageCode);
+  }
+
+  /// Журнал тапов за сегодня.
+  static HomeJournalUiModel journal({
+    required HomeJournalProjection projection,
     required AppLocalizations l10n,
     required Locale locale,
   }) {
-    return HomeUiModel(
-      balance: _balanceUiModel(
-        projection.balance,
-        l10n: l10n,
-        languageCode: locale.languageCode,
-      ),
-      journal: _journalUiModel(projection.journal, l10n: l10n, locale: locale),
-      tapEnabled: projection.tapEnabled,
-      tapLabel: l10n.recordBeerTap(
-        formatRecordBeerVolume(
-          projection.buttonClicker,
-          languageCode: locale.languageCode,
-        ),
-      ),
-      undoEnabled: projection.undoEnabled,
-      undoLabel: l10n.undoLastTap,
+    return _journalUiModel(projection, l10n: l10n, locale: locale);
+  }
+
+  /// Подпись кнопки записи: объём текущей порции.
+  static String tapLabel({
+    required Clicker clicker,
+    required AppLocalizations l10n,
+    required String languageCode,
+  }) {
+    return l10n.recordBeerTap(
+      formatRecordBeerVolume(clicker, languageCode: languageCode),
     );
   }
 

@@ -6,12 +6,30 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'home_projection.freezed.dart';
 
 /// Тапы за сегодня для проекции главной.
+///
+/// Равенство по содержимому: [homeProjectionProvider.select] не должен
+/// пересобирать журнал, если список тот же, а изменилась только кнопка.
 class HomeJournalClickList {
   /// Создаёт обёртку над списком [Click].
   const HomeJournalClickList(this.clicks);
 
   /// Записи журнала за текущий день.
   final List<Click> clicks;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! HomeJournalClickList ||
+        clicks.length != other.clicks.length) {
+      return false;
+    }
+    for (var index = 0; index < clicks.length; index++) {
+      if (clicks[index] != other.clicks[index]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hashAll(clicks);
 }
 
 /// Состояние карточки баланса без UI-строк.
