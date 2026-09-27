@@ -203,5 +203,41 @@ void main() {
       expect(clicks, hasLength(2));
       expect(clicks.first.at.isAfter(clicks.last.at), isTrue);
     });
+
+    test('тап в тот же день не сбрасывает журнал, баланс и график', () async {
+      final container = ProviderContainer.test(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+      );
+      container.listen(recordClickProvider, (_, _) {});
+      container.listen(currentClickerProvider, (_, _) {});
+      await _waitForClicker(container);
+
+      var journalLostValue = false;
+      var balanceLostValue = false;
+      var chartLostValue = false;
+      container.listen(clicksForTodayProvider, (_, next) {
+        if (next.isLoading && !next.hasValue) journalLostValue = true;
+      });
+      container.listen(todayBalanceProvider, (_, next) {
+        if (next.isLoading && !next.hasValue) balanceLostValue = true;
+      });
+      container.listen(volumeForLast7DaysProvider, (_, next) {
+        if (next.isLoading && !next.hasValue) chartLostValue = true;
+      });
+
+      await container.read(clicksForTodayProvider.future);
+      await container.read(todayBalanceProvider.future);
+      await container.read(volumeForLast7DaysProvider.future);
+      journalLostValue = false;
+      balanceLostValue = false;
+      chartLostValue = false;
+
+      await container.read(recordClickProvider.notifier).record();
+      await _flushWatch();
+
+      expect(journalLostValue, isFalse);
+      expect(balanceLostValue, isFalse);
+      expect(chartLostValue, isFalse);
+    });
   });
 }
