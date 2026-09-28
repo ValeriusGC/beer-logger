@@ -254,16 +254,34 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save settings'**
   String get settingsSaveError;
 
-  /// Title of the home chart of volume over the last 7 local days
+  /// Title of the home week chart for volume
   ///
   /// In en, this message translates to:
   /// **'Volume, last 7 days'**
-  String get weekChartTitle;
+  String get weekChartVolumeTitle;
 
-  /// User-visible error when volumeForLast7DaysProvider fails on home
+  /// Title of the home week chart for energy
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the week chart'**
+  /// **'Energy, last 7 days'**
+  String get weekChartEnergyTitle;
+
+  /// Title of the home week chart for money
+  ///
+  /// In en, this message translates to:
+  /// **'Money, last 7 days'**
+  String get weekChartMoneyTitle;
+
+  /// Title of the home week chart for joy
+  ///
+  /// In en, this message translates to:
+  /// **'Joy, last 7 days'**
+  String get weekChartJoyTitle;
+
+  /// User-visible error when weekAxisChartsForLast7DaysProvider fails on home
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the week charts'**
   String get weekChartLoadError;
 }
 

@@ -20,10 +20,27 @@ PeriodBalances _balances({
   );
 }
 
+String _joinCompact(List<FormattedAxisValue> segments) {
+  return segments.map((segment) => segment.text).join('/');
+}
+
 void main() {
+  group('formatTodayBalanceLines', () {
+    test('money отрицательные — isNegative true', () {
+      final lines = formatTodayBalanceLines(
+        _balances(kopecks: -75000),
+        languageCode: 'en',
+      );
+
+      expect(lines.money.isNegative, isTrue);
+      expect(lines.money.text, '-750 ₽');
+      expect(lines.energy.isNegative, isFalse);
+    });
+  });
+
   group('formatTodayBalanceCompact', () {
     test('ru — литры без мл, знаки как на карточке, слеш', () {
-      final line = formatTodayBalanceCompact(
+      final segments = formatTodayBalanceCompact(
         _balances(
           milliliters: 2500,
           calories: 500000,
@@ -33,11 +50,12 @@ void main() {
         languageCode: 'ru',
       );
 
-      expect(line, '2,5L/+500kcal/-750₽/+10pt');
+      expect(_joinCompact(segments), '2,5L/+500kcal/-750₽/+10pt');
+      expect(segments[2].isNegative, isTrue);
     });
 
     test('en — точка в литрах, те же знаки', () {
-      final line = formatTodayBalanceCompact(
+      final segments = formatTodayBalanceCompact(
         _balances(
           milliliters: 2500,
           calories: 500000,
@@ -47,14 +65,30 @@ void main() {
         languageCode: 'en',
       );
 
-      expect(line, '2.5L/+500kcal/-750₽/+10pt');
+      expect(_joinCompact(segments), '2.5L/+500kcal/-750₽/+10pt');
     });
 
     test('нули — без плюса и без минус-нуля', () {
-      expect(
-        formatTodayBalanceCompact(_balances(), languageCode: 'en'),
-        '0L/0kcal/0₽/0pt',
+      final segments = formatTodayBalanceCompact(
+        _balances(),
+        languageCode: 'en',
       );
+
+      expect(_joinCompact(segments), '0L/0kcal/0₽/0pt');
+      expect(segments.every((segment) => !segment.isNegative), isTrue);
+    });
+  });
+
+  group('formatWeekChartAxisTotal', () {
+    test('сумма денег за неделю — знак и единица', () {
+      final total = formatWeekChartAxisTotal(
+        -300,
+        LedgerAxisKind.money,
+        languageCode: 'en',
+      );
+
+      expect(total.text, '-300 ₽');
+      expect(total.isNegative, isTrue);
     });
   });
 }

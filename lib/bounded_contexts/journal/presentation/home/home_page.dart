@@ -6,9 +6,11 @@ import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_cont
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_projection.cg.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model_builder.dart';
+import 'package:beer_logger/bounded_contexts/journal/presentation/axis_value_color.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_card.dart';
+import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_format.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_clicks_section.dart';
-import 'package:beer_logger/bounded_contexts/journal/presentation/week_volume_chart.dart';
+import 'package:beer_logger/bounded_contexts/journal/presentation/week_charts_carousel.dart';
 import 'package:beer_logger/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -166,8 +168,8 @@ class _HomeCompactBodyState extends State<_HomeCompactBody> {
               ),
             ),
           ),
+          const SliverToBoxAdapter(child: WeekChartsCarousel()),
           const _HomeJournalSliverSection(),
-          const SliverToBoxAdapter(child: WeekVolumeChart()),
         ],
       ),
     );
@@ -181,21 +183,68 @@ class _HomeWideBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CustomScrollView(
-      key: Key('home-wide-body'),
+    return CustomScrollView(
+      key: const Key('home-wide-body'),
       slivers: [
-        _HomeSliverAppBar(),
-        SliverToBoxAdapter(
-          child: Row(
-            key: Key('home-balance-chart-row'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _HomeBalanceSection()),
-              Expanded(child: WeekVolumeChart()),
-            ],
+        const _HomeSliverAppBar(),
+        const SliverToBoxAdapter(child: _HomeWideTopRow()),
+        const _HomeJournalSliverSection(),
+      ],
+    );
+  }
+}
+
+/// Верхний ряд wide: баланс слева, карусель справа одной высоты.
+///
+/// [PageView] не участвует в intrinsic layout, поэтому высоту левой карточки
+/// снимаем после кадра и подставляем в правую колонку.
+class _HomeWideTopRow extends StatefulWidget {
+  /// Собирает ряд 50/50 с выравниванием по высоте карточки баланса.
+  const _HomeWideTopRow();
+
+  @override
+  State<_HomeWideTopRow> createState() => _HomeWideTopRowState();
+}
+
+class _HomeWideTopRowState extends State<_HomeWideTopRow> {
+  final _balanceKey = GlobalKey();
+  double? _rowHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncRowHeight());
+  }
+
+  void _syncRowHeight() {
+    final renderObject = _balanceKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+    final height = renderObject.size.height;
+    if (_rowHeight != height) {
+      setState(() => _rowHeight = height);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const Key('home-balance-chart-row'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: KeyedSubtree(
+            key: _balanceKey,
+            child: const _HomeBalanceSection(),
           ),
         ),
-        _HomeJournalSliverSection(),
+        Expanded(
+          child: SizedBox(
+            height: _rowHeight,
+            child: WeekChartsCarousel(fillHeight: _rowHeight != null),
+          ),
+        ),
       ],
     );
   }
@@ -245,7 +294,7 @@ class _HomeAppBarTitle extends ConsumerWidget {
       return title;
     }
 
-    final compactLine = _compactBalanceLine(context, ref);
+    final compactSegments = _compactBalanceSegments(context, ref);
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -257,16 +306,10 @@ class _HomeAppBarTitle extends ConsumerWidget {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Opacity(
-              opacity: compactLine == null ? 0 : compactLineOpacity!,
-              child: Text(
-                compactLine ?? '',
-                key: compactLine == null
-                    ? null
-                    : const Key('today-balance-compact'),
-                style: Theme.of(context).textTheme.labelSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              opacity: compactSegments == null ? 0 : compactLineOpacity!,
+              child: compactSegments == null
+                  ? const SizedBox.shrink()
+                  : _CompactBalanceLine(segments: compactSegments),
             ),
           ),
         ),
@@ -392,7 +435,10 @@ class _HomeJournalSliverSection extends ConsumerWidget {
   }
 }
 
-String? _compactBalanceLine(BuildContext context, WidgetRef ref) {
+List<FormattedAxisValue>? _compactBalanceSegments(
+  BuildContext context,
+  WidgetRef ref,
+) {
   final projection = ref.watch(
     homeProjectionProvider.select((home) => home.balance),
   );
@@ -403,7 +449,46 @@ String? _compactBalanceLine(BuildContext context, WidgetRef ref) {
     languageCode: locale.languageCode,
   );
   return switch (ui) {
-    HomeBalanceUiLines(:final compactLine) => compactLine,
+    HomeBalanceUiLines(:final compactSegments) => compactSegments,
     _ => null,
   };
+}
+
+/// Слеш-строка баланса в compact AppBar: отрицательные сегменты — красным.
+class _CompactBalanceLine extends StatelessWidget {
+  const _CompactBalanceLine({required this.segments});
+
+  final List<FormattedAxisValue> segments;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final baseStyle = Theme.of(context).textTheme.labelSmall!;
+    final spans = <InlineSpan>[];
+    for (var index = 0; index < segments.length; index++) {
+      if (index > 0) {
+        spans.add(
+          TextSpan(
+            text: '/',
+            style: baseStyle.copyWith(color: colors.onSurfaceVariant),
+          ),
+        );
+      }
+      final segment = segments[index];
+      spans.add(
+        TextSpan(
+          text: segment.text,
+          style: baseStyle.copyWith(
+            color: axisValueColor(colors, isNegative: segment.isNegative),
+          ),
+        ),
+      );
+    }
+    return Text.rich(
+      TextSpan(children: spans),
+      key: const Key('today-balance-compact'),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
 }

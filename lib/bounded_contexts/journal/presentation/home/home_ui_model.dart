@@ -24,14 +24,14 @@ final class HomeBalanceUiError extends HomeBalanceUiModel {
 
 /// Карточка баланса с отформатированными строками осей.
 final class HomeBalanceUiLines extends HomeBalanceUiModel {
-  /// Четыре подписи карточки и слеш-строка для сжатого AppBar.
-  const HomeBalanceUiLines(this.lines, {required this.compactLine});
+  /// Четыре подписи карточки и сегменты слеш-строки для сжатого AppBar.
+  const HomeBalanceUiLines(this.lines, {required this.compactSegments});
 
   /// Строки карточки в порядке пресета.
   final TodayBalanceLines lines;
 
-  /// Те же оси одной строкой: `2,5L/+500kcal/-750₽/+10pt`.
-  final String compactLine;
+  /// Те же оси для compact title: объём, энергия, деньги, радость.
+  final List<FormattedAxisValue> compactSegments;
 }
 
 /// Состояние журнала тапов для отрисовки.

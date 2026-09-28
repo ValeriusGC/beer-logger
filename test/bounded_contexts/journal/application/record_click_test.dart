@@ -221,13 +221,13 @@ void main() {
       container.listen(todayBalanceProvider, (_, next) {
         if (next.isLoading && !next.hasValue) balanceLostValue = true;
       });
-      container.listen(volumeForLast7DaysProvider, (_, next) {
+      container.listen(weekAxisChartsForLast7DaysProvider, (_, next) {
         if (next.isLoading && !next.hasValue) chartLostValue = true;
       });
 
       await container.read(clicksForTodayProvider.future);
       await container.read(todayBalanceProvider.future);
-      await container.read(volumeForLast7DaysProvider.future);
+      await container.read(weekAxisChartsForLast7DaysProvider.future);
       journalLostValue = false;
       balanceLostValue = false;
       chartLostValue = false;

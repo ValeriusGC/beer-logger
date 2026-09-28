@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../week_charts_fixtures.dart';
+
 const _compactBody = Key('home-compact-body');
 const _wideBody = Key('home-wide-body');
 const _balanceChartRow = Key('home-balance-chart-row');
@@ -69,11 +71,8 @@ Future<void> _pumpHome(
         currentClickerProvider.overrideWith(
           (ref) => Stream.value(beerHalfLiter()),
         ),
-        volumeForLast7DaysProvider.overrideWithValue(
-          AsyncData([
-            for (var index = 0; index < 7; index++)
-              DayVolume(day: DateTime(2026, 9, 15 + index), liters: 0),
-          ]),
+        weekAxisChartsForLast7DaysProvider.overrideWithValue(
+          AsyncData(emptyWeekAxisCharts()),
         ),
       ],
       child: const MaterialApp(
@@ -96,7 +95,7 @@ void _expectSharedSections() {
   expect(find.byType(TodayBalanceCard), findsOneWidget);
   expect(find.byType(FilledButton), findsOneWidget);
   expect(find.text('Today'), findsOneWidget);
-  expect(find.byType(WeekVolumeChart), findsOneWidget);
+  expect(find.byType(WeekChartsCarousel), findsOneWidget);
 }
 
 void _expectTapPinned(WidgetTester tester) {
@@ -132,13 +131,19 @@ void _expectCompact(WidgetTester tester) {
   expect(
     find.descendant(
       of: find.byKey(_compactBody),
-      matching: find.byType(WeekVolumeChart),
+      matching: find.byType(WeekChartsCarousel),
     ),
     findsOneWidget,
   );
+
+  final carouselTop = tester.getTopLeft(find.byType(WeekChartsCarousel));
+  final journalTop = tester.getTopLeft(find.text('Today'));
+  expect(journalTop.dy, greaterThan(carouselTop.dy));
 }
 
-void _expectWide(WidgetTester tester) {
+Future<void> _expectWide(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
   expect(find.byKey(_wideBody), findsOneWidget);
   expect(find.byKey(_compactBody), findsNothing);
   expect(find.byKey(_balanceChartRow), findsOneWidget);
@@ -155,20 +160,28 @@ void _expectWide(WidgetTester tester) {
   expect(
     find.descendant(
       of: find.byKey(_balanceChartRow),
-      matching: find.byType(WeekVolumeChart),
+      matching: find.byType(WeekChartsCarousel),
     ),
     findsOneWidget,
   );
 
-  final chart = tester.getRect(find.byType(WeekVolumeChart));
+  final chart = tester.getRect(find.byType(WeekChartsCarousel));
   final balance = tester.getRect(find.byType(TodayBalanceCard));
   expect(chart.left, greaterThan(balance.left));
   expect((chart.top - balance.top).abs(), lessThan(1));
+  await tester.pump();
+  expect((chart.bottom - balance.bottom).abs(), lessThan(1));
 }
 
 Future<void> _collapseBody(WidgetTester tester, Key body) async {
   final scrollable = tester.state<ScrollableState>(
-    find.descendant(of: find.byKey(body), matching: find.byType(Scrollable)),
+    find.descendant(
+      of: find.byKey(body),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    ),
   );
   scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
   await tester.pumpAndSettle();
@@ -191,12 +204,12 @@ void main() {
     tester,
   ) async {
     await _pumpHome(tester, width: 600);
-    _expectWide(tester);
+    await _expectWide(tester);
   });
 
   testWidgets('800px — wide body, карточка слева от графика', (tester) async {
     await _pumpHome(tester, width: 800);
-    _expectWide(tester);
+    await _expectWide(tester);
   });
 
   testWidgets('ресайз 400→800→400 переключает compact и wide', (tester) async {
@@ -204,7 +217,7 @@ void main() {
     _expectCompact(tester);
 
     await _resizeHome(tester, width: 800);
-    _expectWide(tester);
+    await _expectWide(tester);
 
     await _resizeHome(tester, width: 400);
     _expectCompact(tester);

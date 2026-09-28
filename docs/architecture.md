@@ -1,8 +1,8 @@
 # Архитектура Пивомера
 
 **Дата создания:** 2026-09-25 15:23:47 +0300  
-**Последнее обновление:** 2026-09-28 08:30 EEST  
-**Версия:** 11  
+**Последнее обновление:** 2026-09-28 08:55 EEST  
+**Версия:** 12  
 **Вид документа:** спецификация
 
 Пивомер — offline-приложение с trade-off tap: одно нажатие фиксирует несколько осей учёта (объём, ккал, деньги, удовольствие). Архитектура разделяет живые настройки и уже случившиеся факты, чтобы изменение ккал сегодня не переписывало вчерашние записи.
@@ -75,7 +75,7 @@ presentation → application → domain ← infrastructure
 1. **Одна [AppDatabase]** в `lib/core/persistence/` на оба bounded context. Три таблицы: тапы, вклады осей, живая порция. Отвергнуто: две SQLite или SharedPreferences рядом.
 2. **Реализации** — в `infrastructure/` своего контекста; контракты остаются в `domain/click/` и `domain/clicker/`.
 3. **Riverpod:** DI в `lib/core/di/`; сценарии в `application/`:
-   - журнал: `record_click`, `undo_last_click`, `clicks_for_today`, `today_balance`, `volume_for_last_7_days`;
+   - журнал: `record_click`, `undo_last_click`, `clicks_for_today`, `today_balance`, `week_axis_charts_for_last_7_days`;
    - порция: `current_clicker`.
    - Отвергнуто: `lib/app/providers/`.
 4. **Запись тапа** — [record_click] берёт текущую порцию из `currentClicker`, не из зашитого пресета. [Click.record] по-прежнему принимает `List<AxisRecordInput>`, не [Clicker]. Момент тапа — свежий `DateTime.now()` в тот же календарный день, без [Ref.refresh] кэша `now`. Инвалидация границ дня на каждый тап переводила запросы в reload и на кадр подменяла карточки индикатором.
@@ -95,7 +95,7 @@ presentation → application → domain ← infrastructure
 
 [HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Кнопка записи — `Scaffold.bottomNavigationBar` плюс `SafeArea`, не sliver: не уезжает со скроллом и не прячется под home indicator. Compact: pinned [SliverAppBar] (только chrome) и карточка баланса отдельным sliver с intrinsic-высотой; при скролле вверх те же оси — слеш-строка в title по позиции карточки. Wide: pinned-бар, карточка и график в одном ряду. Layout `>= 600` — `LayoutBuilder` выбирает compact или wide body целиком. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
 
-[TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekVolumeChart] смотрит `volumeForLast7DaysProvider` сам и в Factory не входит: график рисует готовые литры.
+[TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekChartsCarousel] смотрит `weekAxisChartsForLast7DaysProvider` сам и в Factory не входит: карусель из четырёх недельных графиков (объём, ккал, деньги, радость) со snap-прокруткой. Compact: карусель под карточкой баланса; wide: правая половина ряда с карточкой.
 
 Отвергнуто: считать оси в `build` виджета. Отвергнуто: третий bounded context «витрина».
 
@@ -155,5 +155,5 @@ lib/
             │   └── …
             ├── today_balance_card.dart
             ├── today_clicks_section.dart
-            └── week_volume_chart.dart
+            └── week_charts_carousel.dart
 ```
