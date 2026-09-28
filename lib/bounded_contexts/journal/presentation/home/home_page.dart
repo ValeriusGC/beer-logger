@@ -22,8 +22,10 @@ const _homeWideWidth = 600.0;
 /// Главный экран приложения: баланс, запись тапа, журнал и объём за неделю.
 ///
 /// Сам проекцию не смотрит. [LayoutBuilder] выбирает целиком compact или wide
-/// body. Секции внутри body делают `select` своего среза, чтобы смена кнопки
-/// не пересобирала карточку, список и график.
+/// body. Кнопка записи — слот [Scaffold.bottomNavigationBar], не в скролле:
+/// [SafeArea] учитывает home indicator и жестовую навигацию, SnackBar не
+/// накрывает кнопку. Секции внутри body делают `select` своего среза, чтобы
+/// смена кнопки не пересобирала карточку, список и график.
 /// SnackBar и haptic — здесь.
 class HomePage extends ConsumerWidget {
   /// Создаёт главный экран с карточкой, кнопкой записи, журналом и графиком.
@@ -68,14 +70,16 @@ class HomePage extends ConsumerWidget {
           return const _HomeCompactBody();
         },
       ),
+      bottomNavigationBar: const _HomeTapBar(),
     );
   }
 }
 
-/// Компактный layout главной: колонка баланс → тап → журнал → график.
+/// Компактный layout главной: колонка баланс → журнал → график.
 ///
-/// Свой [CustomScrollView], список slivers без ветвлений. Проекцию не смотрит —
-/// данные берёт каждая секция через `select`.
+/// Свой [CustomScrollView], список slivers без ветвлений. Кнопка записи
+/// живёт в [_HomeTapBar], не здесь. Проекцию не смотрит — данные берёт
+/// каждая секция через `select`.
 class _HomeCompactBody extends StatelessWidget {
   /// Собирает узкую главную.
   const _HomeCompactBody();
@@ -86,7 +90,6 @@ class _HomeCompactBody extends StatelessWidget {
       key: Key('home-compact-body'),
       slivers: [
         SliverToBoxAdapter(child: _HomeBalanceSection()),
-        SliverToBoxAdapter(child: _HomeTapButton()),
         _HomeJournalSliverSection(),
         SliverToBoxAdapter(child: WeekVolumeChart()),
       ],
@@ -94,10 +97,10 @@ class _HomeCompactBody extends StatelessWidget {
   }
 }
 
-/// Широкий layout главной: баланс и график в ряду, ниже тап и журнал.
+/// Широкий layout главной: баланс и график в ряду, ниже журнал.
 ///
 /// Свой [CustomScrollView], список slivers без ветвлений. График только в ряду,
-/// под журналом не дублируется. Проекцию не смотрит.
+/// под журналом не дублируется. Кнопка записи — [_HomeTapBar]. Проекцию не смотрит.
 class _HomeWideBody extends StatelessWidget {
   /// Собирает широкую главную.
   const _HomeWideBody();
@@ -117,7 +120,6 @@ class _HomeWideBody extends StatelessWidget {
             ],
           ),
         ),
-        SliverToBoxAdapter(child: _HomeTapButton()),
         _HomeJournalSliverSection(),
       ],
     );
@@ -148,11 +150,33 @@ class _HomeBalanceSection extends ConsumerWidget {
   }
 }
 
+/// Нижняя панель записи тапа.
+///
+/// Слот [Scaffold.bottomNavigationBar]: SnackBar выезжает над кнопкой.
+/// [SafeArea] отодвигает её от home indicator, жестовой навигации и
+/// скруглений; верх не трогаем — его уже съел [AppBar].
+class _HomeTapBar extends StatelessWidget {
+  /// Панель с кнопкой над системным inset.
+  const _HomeTapBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SafeArea(
+      key: Key('home-tap-bar'),
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: _HomeTapButton(),
+      ),
+    );
+  }
+}
+
 /// Кнопка «записать тап» с подписью объёма текущей порции.
 ///
 /// `select` берёт только [HomeProjection.tapEnabled] и [HomeProjection.buttonClicker].
 class _HomeTapButton extends ConsumerWidget {
-  /// Секция кнопки записи со срезом проекции.
+  /// Кнопка записи на всю ширину нижней панели.
   const _HomeTapButton();
 
   @override
@@ -164,8 +188,8 @@ class _HomeTapButton extends ConsumerWidget {
       ),
     );
     final locale = Localizations.localeOf(context);
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return SizedBox(
+      width: double.infinity,
       child: FilledButton(
         onPressed: tap.enabled
             ? () => ref.read(homeControllerProvider.notifier).record()

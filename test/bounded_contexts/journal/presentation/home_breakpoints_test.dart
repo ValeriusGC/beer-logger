@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _compactBody = Key('home-compact-body');
 const _wideBody = Key('home-wide-body');
 const _balanceChartRow = Key('home-balance-chart-row');
+const _tapBar = Key('home-tap-bar');
 
 PeriodBalances _emptyBalances() {
   return PeriodBalances(
@@ -29,11 +30,20 @@ class _ReadyRecordClick extends RecordClick {
   FutureOr<void> build() {}
 }
 
-Future<void> _pumpHome(WidgetTester tester, {required double width}) async {
+Future<void> _pumpHome(
+  WidgetTester tester, {
+  required double width,
+  double height = 900,
+  double paddingBottom = 0,
+}) async {
   tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, height);
+  tester.view.padding = FakeViewPadding(bottom: paddingBottom);
+  tester.view.viewPadding = FakeViewPadding(bottom: paddingBottom);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPadding);
+  addTearDown(tester.view.resetViewPadding);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -63,7 +73,7 @@ Future<void> _pumpHome(WidgetTester tester, {required double width}) async {
 }
 
 Future<void> _resizeHome(WidgetTester tester, {required double width}) async {
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, tester.view.physicalSize.height);
   await tester.pump();
 }
 
@@ -74,11 +84,35 @@ void _expectSharedSections() {
   expect(find.byType(WeekVolumeChart), findsOneWidget);
 }
 
+void _expectTapPinned(WidgetTester tester) {
+  expect(find.byKey(_tapBar), findsOneWidget);
+  expect(
+    find.descendant(
+      of: find.byKey(_compactBody),
+      matching: find.byType(FilledButton),
+    ),
+    findsNothing,
+  );
+  expect(
+    find.descendant(
+      of: find.byKey(_wideBody),
+      matching: find.byType(FilledButton),
+    ),
+    findsNothing,
+  );
+
+  final tap = tester.getRect(find.byType(FilledButton));
+  final scaffold = tester.getRect(find.byType(Scaffold));
+  expect(tap.top, greaterThan(scaffold.center.dy));
+  expect(tap.bottom, lessThanOrEqualTo(scaffold.bottom));
+}
+
 void _expectCompact(WidgetTester tester) {
   expect(find.byKey(_compactBody), findsOneWidget);
   expect(find.byKey(_wideBody), findsNothing);
   expect(find.byKey(_balanceChartRow), findsNothing);
   _expectSharedSections();
+  _expectTapPinned(tester);
   expect(
     find.descendant(
       of: find.byKey(_compactBody),
@@ -86,10 +120,6 @@ void _expectCompact(WidgetTester tester) {
     ),
     findsOneWidget,
   );
-
-  final chartTop = tester.getTopLeft(find.byType(WeekVolumeChart)).dy;
-  final tapTop = tester.getTopLeft(find.byType(FilledButton)).dy;
-  expect(chartTop, greaterThan(tapTop));
 }
 
 void _expectWide(WidgetTester tester) {
@@ -97,6 +127,7 @@ void _expectWide(WidgetTester tester) {
   expect(find.byKey(_compactBody), findsNothing);
   expect(find.byKey(_balanceChartRow), findsOneWidget);
   _expectSharedSections();
+  _expectTapPinned(tester);
   expect(
     find.descendant(
       of: find.byKey(_balanceChartRow),
@@ -119,7 +150,7 @@ void _expectWide(WidgetTester tester) {
 }
 
 void main() {
-  testWidgets('400px — compact body, график под кнопкой, не в ряду', (
+  testWidgets('400px — compact body, график в колонке, кнопка не в скролле', (
     tester,
   ) async {
     await _pumpHome(tester, width: 400);
@@ -152,5 +183,26 @@ void main() {
 
     await _resizeHome(tester, width: 400);
     _expectCompact(tester);
+  });
+
+  testWidgets('скролл журнала не двигает кнопку записи', (tester) async {
+    await _pumpHome(tester, width: 400, height: 500);
+    final before = tester.getTopLeft(find.byType(FilledButton));
+
+    await tester.drag(find.byKey(_compactBody), const Offset(0, -200));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.byType(FilledButton)), before);
+    expect(find.byType(FilledButton), findsOneWidget);
+  });
+
+  testWidgets('home indicator — кнопка выше системного inset', (tester) async {
+    const inset = 34.0;
+    await _pumpHome(tester, width: 400, paddingBottom: inset);
+
+    final tap = tester.getRect(find.byType(FilledButton));
+    final scaffold = tester.getRect(find.byType(Scaffold));
+    expect(tap.bottom, lessThanOrEqualTo(scaffold.bottom - inset + 0.5));
+    expect(tap.bottom, greaterThan(scaffold.bottom - inset - 48));
   });
 }
