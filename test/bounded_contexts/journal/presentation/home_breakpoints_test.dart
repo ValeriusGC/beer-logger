@@ -52,11 +52,18 @@ Future<void> _pumpHome(
   required double width,
   double height = 900,
   double paddingBottom = 0,
+  double paddingLeft = 0,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, height);
-  tester.view.padding = FakeViewPadding(bottom: paddingBottom);
-  tester.view.viewPadding = FakeViewPadding(bottom: paddingBottom);
+  tester.view.padding = FakeViewPadding(
+    left: paddingLeft,
+    bottom: paddingBottom,
+  );
+  tester.view.viewPadding = FakeViewPadding(
+    left: paddingLeft,
+    bottom: paddingBottom,
+  );
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPadding);
@@ -300,5 +307,21 @@ void main() {
     final scaffold = tester.getRect(find.byType(Scaffold));
     expect(tap.bottom, lessThanOrEqualTo(scaffold.bottom - inset + 0.5));
     expect(tap.bottom, greaterThan(scaffold.bottom - inset - 48));
+  });
+
+  testWidgets('landscape inset — карточка не под notch', (tester) async {
+    const inset = 59.0;
+    await _pumpHome(tester, width: 800, paddingLeft: inset);
+
+    final card = tester.getRect(find.byType(TodayBalanceCard));
+    expect(card.left, greaterThanOrEqualTo(inset + 16 - 0.5));
+  });
+
+  testWidgets('wide — кнопка записи не на всю ширину экрана', (tester) async {
+    await _pumpHome(tester, width: 800);
+
+    final tap = tester.getRect(find.byType(FilledButton));
+    final scaffold = tester.getRect(find.byType(Scaffold));
+    expect(tap.width, lessThan(scaffold.width - 32));
   });
 }

@@ -45,6 +45,12 @@ const _appBarTitleSizeBump = 2.0;
 const _settingsIconLiftCompact = 18.0;
 const _settingsIconLiftWide = 2.0;
 
+/// Максимальная ширина кнопки записи на wide (landscape / планшет).
+const _homeTapButtonMaxWidth = 400.0;
+
+/// Зазор между карточкой баланса и каруселью в wide-ряду.
+const _wideTopRowGap = 8.0;
+
 /// Главный экран приложения: баланс, запись тапа, журнал и объём за неделю.
 ///
 /// Сам проекцию не смотрит. [LayoutBuilder] выбирает целиком compact или wide
@@ -74,14 +80,21 @@ class HomePage extends ConsumerWidget {
       }
     });
 
+    final viewPadding = MediaQuery.paddingOf(context);
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= _homeWideWidth) {
-            return const _HomeWideBody();
-          }
-          return const _HomeCompactBody();
-        },
+      body: Padding(
+        padding: EdgeInsets.only(
+          left: viewPadding.left,
+          right: viewPadding.right,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth >= _homeWideWidth) {
+              return const _HomeWideBody();
+            }
+            return const _HomeCompactBody();
+          },
+        ),
       ),
       bottomNavigationBar: const _HomeTapBar(),
     );
@@ -236,23 +249,32 @@ class _HomeWideTopRowState extends State<_HomeWideTopRow> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      key: const Key('home-balance-chart-row'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: KeyedSubtree(
-            key: _balanceKey,
-            child: const _HomeBalanceSection(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        _balanceHorizontalPadding,
+        0,
+        _balanceHorizontalPadding,
+        _balanceBottomPadding,
+      ),
+      child: Row(
+        key: const Key('home-balance-chart-row'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: KeyedSubtree(
+              key: _balanceKey,
+              child: const _HomeBalanceSection(),
+            ),
           ),
-        ),
-        Expanded(
-          child: SizedBox(
-            height: _rowHeight,
-            child: WeekChartsCarousel(fillHeight: _rowHeight != null),
+          const SizedBox(width: _wideTopRowGap),
+          Expanded(
+            child: SizedBox(
+              height: _rowHeight,
+              child: WeekChartsCarousel(fillHeight: _rowHeight != null),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -346,7 +368,9 @@ class _HomeSettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final lift = compactChrome ? _settingsIconLiftCompact : _settingsIconLiftWide;
+    final lift = compactChrome
+        ? _settingsIconLiftCompact
+        : _settingsIconLiftWide;
     return Padding(
       padding: EdgeInsets.only(bottom: lift),
       child: IconButton(
@@ -393,12 +417,23 @@ class _HomeTapBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
-      key: Key('home-tap-bar'),
+    final wideTap = MediaQuery.sizeOf(context).width >= _homeWideWidth;
+    return SafeArea(
+      key: const Key('home-tap-bar'),
       top: false,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: _HomeTapButton(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: wideTap
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: _homeTapButtonMaxWidth,
+                    child: const _HomeTapButton(),
+                  ),
+                ],
+              )
+            : const _HomeTapButton(),
       ),
     );
   }
