@@ -21,6 +21,14 @@ Offline trade-off tap: одно нажатие фиксирует несколь
 
 На главной: тап, баланс дня, список с undo, график объёма за 7 дней. Настройки порции — четыре числа живой порции. UI на русском и английском.
 
+
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/7958a6eb-f279-4dac-8d27-2b6c2465a7ac" />
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/e9ac6390-e4d9-4503-888e-47413318638e" />
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/2b4dd785-30ae-4356-b689-9141583a1852" />
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/2b82048c-1a29-45e2-9569-c1f5f846da3d" />
+
+
+
 ## Запуск
 
 ```bash
