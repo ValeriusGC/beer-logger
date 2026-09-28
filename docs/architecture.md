@@ -1,8 +1,8 @@
 # Архитектура Пивомера
 
 **Дата создания:** 2026-09-25 15:23:47 +0300  
-**Последнее обновление:** 2026-09-26 21:50:07 +0300  
-**Версия:** 7  
+**Последнее обновление:** 2026-09-27 19:28:50 +0300  
+**Версия:** 8  
 **Вид документа:** спецификация
 
 Пивомер — offline-приложение с trade-off tap: одно нажатие фиксирует несколько осей учёта (объём, ккал, деньги, удовольствие). Архитектура разделяет живые настройки и уже случившиеся факты, чтобы изменение ккал сегодня не переписывало вчерашние записи.
@@ -93,7 +93,7 @@ presentation → application → domain ← infrastructure
         → dumb Widget (рисует UiModel, зовёт callback)
 ```
 
-[HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Layout `>= 600` — `MediaQuery`. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
+[HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Layout `>= 600` — `LayoutBuilder` выбирает compact или wide body целиком, без флагов в общем списке slivers. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
 
 [TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekVolumeChart] смотрит `volumeForLast7DaysProvider` сам и в Factory не входит: график рисует готовые литры.
 

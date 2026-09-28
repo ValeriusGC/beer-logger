@@ -14,13 +14,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Порог Material compact: уже окно — колонка, иначе карточка и график в ряд.
+/// Порог Material compact: шире — [_HomeWideBody], иначе [_HomeCompactBody].
+///
+/// Сравнивается с [BoxConstraints.maxWidth] body, не с размером окна.
 const _homeWideWidth = 600.0;
 
 /// Главный экран приложения: баланс, запись тапа, журнал и объём за неделю.
 ///
-/// Сам проекцию не смотрит. Секции ниже делают `select` своего среза,
-/// чтобы смена кнопки не пересобирала карточку, список и график.
+/// Сам проекцию не смотрит. [LayoutBuilder] выбирает целиком compact или wide
+/// body. Секции внутри body делают `select` своего среза, чтобы смена кнопки
+/// не пересобирала карточку, список и график.
 /// SnackBar и haptic — здесь.
 class HomePage extends ConsumerWidget {
   /// Создаёт главный экран с карточкой, кнопкой записи, журналом и графиком.
@@ -46,8 +49,6 @@ class HomePage extends ConsumerWidget {
       }
     });
 
-    final wide = MediaQuery.sizeOf(context).width >= _homeWideWidth;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -59,35 +60,65 @@ class HomePage extends ConsumerWidget {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          if (wide)
-            const SliverToBoxAdapter(child: _HomeWideHeader())
-          else
-            const SliverToBoxAdapter(child: _HomeBalanceSection()),
-          const SliverToBoxAdapter(child: _HomeTapButton()),
-          const _HomeJournalSection(),
-          if (!wide) const SliverToBoxAdapter(child: WeekVolumeChart()),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= _homeWideWidth) {
+            return const _HomeWideBody();
+          }
+          return const _HomeCompactBody();
+        },
       ),
     );
   }
 }
 
-/// Широкий layout: [TodayBalanceCard] и [WeekVolumeChart] в одной строке.
+/// Компактный layout главной: колонка баланс → тап → журнал → график.
 ///
-/// Только компоновка — данные каждая секция берёт сама через `select`.
-class _HomeWideHeader extends StatelessWidget {
-  const _HomeWideHeader();
+/// Свой [CustomScrollView], список slivers без ветвлений. Проекцию не смотрит —
+/// данные берёт каждая секция через `select`.
+class _HomeCompactBody extends StatelessWidget {
+  /// Собирает узкую главную.
+  const _HomeCompactBody();
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      key: Key('home-balance-chart-row'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _HomeBalanceSection()),
-        Expanded(child: WeekVolumeChart()),
+    return const CustomScrollView(
+      key: Key('home-compact-body'),
+      slivers: [
+        SliverToBoxAdapter(child: _HomeBalanceSection()),
+        SliverToBoxAdapter(child: _HomeTapButton()),
+        _HomeJournalSliverSection(),
+        SliverToBoxAdapter(child: WeekVolumeChart()),
+      ],
+    );
+  }
+}
+
+/// Широкий layout главной: баланс и график в ряду, ниже тап и журнал.
+///
+/// Свой [CustomScrollView], список slivers без ветвлений. График только в ряду,
+/// под журналом не дублируется. Проекцию не смотрит.
+class _HomeWideBody extends StatelessWidget {
+  /// Собирает широкую главную.
+  const _HomeWideBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CustomScrollView(
+      key: Key('home-wide-body'),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Row(
+            key: Key('home-balance-chart-row'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _HomeBalanceSection()),
+              Expanded(child: WeekVolumeChart()),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(child: _HomeTapButton()),
+        _HomeJournalSliverSection(),
       ],
     );
   }
@@ -98,6 +129,7 @@ class _HomeWideHeader extends StatelessWidget {
 /// Смотрит `homeProjectionProvider.select` только на [HomeBalanceProjection],
 /// чтобы смена кнопки записи не пересобирала баланс.
 class _HomeBalanceSection extends ConsumerWidget {
+  /// Секция баланса со срезом проекции.
   const _HomeBalanceSection();
 
   @override
@@ -120,6 +152,7 @@ class _HomeBalanceSection extends ConsumerWidget {
 ///
 /// `select` берёт только [HomeProjection.tapEnabled] и [HomeProjection.buttonClicker].
 class _HomeTapButton extends ConsumerWidget {
+  /// Секция кнопки записи со срезом проекции.
   const _HomeTapButton();
 
   @override
@@ -151,9 +184,13 @@ class _HomeTapButton extends ConsumerWidget {
 
 /// Список тапов за сегодня и кнопка undo.
 ///
-/// `select` берёт журнал и [HomeProjection.undoEnabled], не трогая карточку и кнопку записи.
-class _HomeJournalSection extends ConsumerWidget {
-  const _HomeJournalSection();
+/// `select` берёт журнал и [HomeProjection.undoEnabled],
+/// не трогая карточку и кнопку записи.
+///
+/// Нейминг указывает, что секция является sliver section.
+class _HomeJournalSliverSection extends ConsumerWidget {
+  /// Секция журнала со срезом проекции.
+  const _HomeJournalSliverSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
