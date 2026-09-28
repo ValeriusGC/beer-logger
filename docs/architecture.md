@@ -1,8 +1,8 @@
 # Архитектура Пивомера
 
 **Дата создания:** 2026-09-25 15:23:47 +0300  
-**Последнее обновление:** 2026-09-28 07:24:27 +0300  
-**Версия:** 9  
+**Последнее обновление:** 2026-09-28 08:30 EEST  
+**Версия:** 11  
 **Вид документа:** спецификация
 
 Пивомер — offline-приложение с trade-off tap: одно нажатие фиксирует несколько осей учёта (объём, ккал, деньги, удовольствие). Архитектура разделяет живые настройки и уже случившиеся факты, чтобы изменение ккал сегодня не переписывало вчерашние записи.
@@ -93,7 +93,7 @@ presentation → application → domain ← infrastructure
         → dumb Widget (рисует UiModel, зовёт callback)
 ```
 
-[HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Кнопка записи — `Scaffold.bottomNavigationBar` плюс `SafeArea`, не sliver: не уезжает со скроллом и не прячется под home indicator. Layout `>= 600` — `LayoutBuilder` выбирает compact или wide body целиком, без флагов в общем списке slivers. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
+[HomePage] не смотрит всю проекцию: секции баланса, кнопки и журнала берут свой срез через `select`, чтобы тап не пересобирал карточку, список и график. [HomeUiModelBuilder] форматирует только этот срез. Snackbar и haptic — `ref.listen` на [HomePage]. Кнопка записи — `Scaffold.bottomNavigationBar` плюс `SafeArea`, не sliver: не уезжает со скроллом и не прячется под home indicator. Compact: pinned [SliverAppBar] (только chrome) и карточка баланса отдельным sliver с intrinsic-высотой; при скролле вверх те же оси — слеш-строка в title по позиции карточки. Wide: pinned-бар, карточка и график в одном ряду. Layout `>= 600` — `LayoutBuilder` выбирает compact или wide body целиком. [HomeController] — только `record` / `undo`. Навигация в настройки — `context.go('/settings')`.
 
 [TodayBalanceCard] и [TodayClicksSection] получают UiModel конструктором — dumb-виджеты без `ConsumerWidget`. [WeekVolumeChart] смотрит `volumeForLast7DaysProvider` сам и в Factory не входит: график рисует готовые литры.
 

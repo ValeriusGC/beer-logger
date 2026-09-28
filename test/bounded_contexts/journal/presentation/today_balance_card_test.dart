@@ -28,7 +28,7 @@ void main() {
         energy: '+300 kcal',
         money: '-450 ₽',
         joy: '+6 pt',
-      )),
+      ), compactLine: '1.5L/+300kcal/-450₽/+6pt'),
     );
 
     expect(_value(tester, 'today-balance-volume'), '1.5 L (1500 ml)');
@@ -45,7 +45,7 @@ void main() {
         energy: '0 kcal',
         money: '0 ₽',
         joy: '0 pt',
-      )),
+      ), compactLine: '0L/0kcal/0₽/0pt'),
     );
 
     expect(_value(tester, 'today-balance-volume'), '0 L (0 ml)');

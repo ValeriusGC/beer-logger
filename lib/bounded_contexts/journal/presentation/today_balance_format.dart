@@ -49,6 +49,52 @@ TodayBalanceLines formatTodayBalanceLines(
   );
 }
 
+/// Те же оси, что [formatTodayBalanceLines], одной слеш-строкой для сжатого AppBar.
+///
+/// Объём — только литры, без миллилитров в скобках. Знаки как на карточке.
+/// Пробела перед символом единицы нет: строка должна умещаться в тулбар.
+String formatTodayBalanceCompact(
+  PeriodBalances balances, {
+  required String languageCode,
+}) {
+  final volume = _compactAmount(
+    fromBase(
+      balances.totalFor(LedgerAxisKind.volume).signedBase,
+      VolumeUnit.liter,
+    ),
+    VolumeUnit.liter,
+    languageCode: languageCode,
+    maximumFractionDigits: 3,
+  );
+  final energy = _compactAmount(
+    fromBase(
+      balances.totalFor(LedgerAxisKind.energy).signedBase,
+      EnergyUnit.kilocalorie,
+    ),
+    EnergyUnit.kilocalorie,
+    languageCode: languageCode,
+    maximumFractionDigits: 0,
+    showPlus: true,
+  );
+  final money = _compactAmount(
+    fromBase(
+      balances.totalFor(LedgerAxisKind.money).signedBase,
+      MoneyUnit.rouble,
+    ),
+    MoneyUnit.rouble,
+    languageCode: languageCode,
+    maximumFractionDigits: 2,
+  );
+  final joy = _compactAmount(
+    fromBase(balances.totalFor(LedgerAxisKind.joy).signedBase, CountUnit.point),
+    CountUnit.point,
+    languageCode: languageCode,
+    maximumFractionDigits: 1,
+    showPlus: true,
+  );
+  return '$volume/$energy/$money/$joy';
+}
+
 String _volumeLine(double milliliters, String languageCode) {
   final liters = _amount(
     fromBase(milliliters, VolumeUnit.liter),
@@ -78,6 +124,22 @@ String _axisLine(
     showPlus: showPlus,
   );
   return '$amount ${unit.symbol}';
+}
+
+String _compactAmount(
+  double displayValue,
+  MeasureUnit unit, {
+  required String languageCode,
+  required int maximumFractionDigits,
+  bool showPlus = false,
+}) {
+  final amount = _amount(
+    displayValue,
+    languageCode: languageCode,
+    maximumFractionDigits: maximumFractionDigits,
+    showPlus: showPlus,
+  );
+  return '$amount${unit.symbol}';
 }
 
 /// [NumberFormat.decimalPattern] на `en` группирует тысячи (`1,500`).

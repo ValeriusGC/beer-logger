@@ -12,6 +12,21 @@ const _compactBody = Key('home-compact-body');
 const _wideBody = Key('home-wide-body');
 const _balanceChartRow = Key('home-balance-chart-row');
 const _tapBar = Key('home-tap-bar');
+const _compactLine = Key('today-balance-compact');
+
+/// Высота pinned-бара compact — должна совпадать с [_balanceToolbarHeight].
+const _compactToolbarHeight = 72.0;
+
+double _compactLineOpacity(WidgetTester tester) {
+  return tester
+      .widget<Opacity>(
+        find.ancestor(
+          of: find.byKey(_compactLine),
+          matching: find.byType(Opacity),
+        ),
+      )
+      .opacity;
+}
 
 PeriodBalances _emptyBalances() {
   return PeriodBalances(
@@ -113,6 +128,7 @@ void _expectCompact(WidgetTester tester) {
   expect(find.byKey(_balanceChartRow), findsNothing);
   _expectSharedSections();
   _expectTapPinned(tester);
+  expect(_compactLineOpacity(tester), lessThan(0.05));
   expect(
     find.descendant(
       of: find.byKey(_compactBody),
@@ -128,6 +144,7 @@ void _expectWide(WidgetTester tester) {
   expect(find.byKey(_balanceChartRow), findsOneWidget);
   _expectSharedSections();
   _expectTapPinned(tester);
+  expect(find.byKey(_compactLine), findsNothing);
   expect(
     find.descendant(
       of: find.byKey(_balanceChartRow),
@@ -147,6 +164,14 @@ void _expectWide(WidgetTester tester) {
   final balance = tester.getRect(find.byType(TodayBalanceCard));
   expect(chart.left, greaterThan(balance.left));
   expect((chart.top - balance.top).abs(), lessThan(1));
+}
+
+Future<void> _collapseBody(WidgetTester tester, Key body) async {
+  final scrollable = tester.state<ScrollableState>(
+    find.descendant(of: find.byKey(body), matching: find.byType(Scrollable)),
+  );
+  scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -183,6 +208,64 @@ void main() {
 
     await _resizeHome(tester, width: 400);
     _expectCompact(tester);
+  });
+
+  testWidgets('развёрнутая карточка ниже тулбара, не под заголовком', (
+    tester,
+  ) async {
+    await _pumpHome(tester, width: 400);
+    final card = tester.getRect(find.byType(TodayBalanceCard));
+    expect(card.top, greaterThanOrEqualTo(_compactToolbarHeight - 1));
+  });
+
+  testWidgets('развёрнутая карточка на всю ширину с боковыми отступами', (
+    tester,
+  ) async {
+    await _pumpHome(tester, width: 400);
+    expect(tester.getSize(find.byType(TodayBalanceCard)).width, 368);
+  });
+
+  testWidgets('скролл вниз уводит карточку и показывает строку в AppBar', (
+    tester,
+  ) async {
+    await _pumpHome(tester, width: 400, height: 500);
+    expect(find.byKey(const Key('today-balance-volume')), findsOneWidget);
+    expect(_compactLineOpacity(tester), lessThan(0.05));
+    final titleBefore = tester.getTopLeft(find.text('Pivomer'));
+
+    await _collapseBody(tester, _compactBody);
+
+    expect(
+      tester.getRect(find.byType(TodayBalanceCard)).bottom,
+      lessThan(_compactToolbarHeight),
+    );
+    expect(_compactLineOpacity(tester), greaterThan(0.9));
+    expect(tester.getTopLeft(find.text('Pivomer')), titleBefore);
+    expect(find.text('0L/0kcal/0₽/0pt'), findsOneWidget);
+    expect(find.text('Pivomer'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(tester.getSize(find.byType(AppBar)).height, closeTo(72, 1));
+    expect(
+      tester.getRect(find.byKey(_compactLine)).top,
+      greaterThanOrEqualTo(tester.getRect(find.text('Pivomer')).bottom - 1),
+    );
+  });
+
+  testWidgets('wide после скролла не показывает compact-строку AppBar', (
+    tester,
+  ) async {
+    await _pumpHome(tester, width: 800, height: 500);
+    await _collapseBody(tester, _wideBody);
+
+    expect(find.byKey(_compactLine), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(_balanceChartRow),
+        matching: find.byType(TodayBalanceCard),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('скролл журнала не двигает кнопку записи', (tester) async {

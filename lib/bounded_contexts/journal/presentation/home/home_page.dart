@@ -4,6 +4,7 @@ import 'package:beer_logger/bounded_contexts/journal/application/record_click.cg
 import 'package:beer_logger/bounded_contexts/journal/application/undo_last_click.cg.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_controller.cg.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_projection.cg.dart';
+import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model_builder.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_card.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_clicks_section.dart';
@@ -19,14 +20,27 @@ import 'package:go_router/go_router.dart';
 /// Сравнивается с [BoxConstraints.maxWidth] body, не с размером окна.
 const _homeWideWidth = 600.0;
 
+/// Горизонтальный отступ карточки баланса в compact-колонке.
+const _balanceHorizontalPadding = 16.0;
+
+/// Нижний отступ карточки под pinned [SliverAppBar].
+const _balanceBottomPadding = 8.0;
+
+/// Высота pinned-бара compact: [title] + зарезервированный слот слеш-строки.
+const _balanceToolbarHeight = 72.0;
+
+/// Слот под слеш-строку в [SliverAppBar.title] — всегда занят, чтобы «Пивомер»
+/// не прыгал при появлении подстроки.
+const _compactLineHeight = 14.0;
+
+/// С какого прогресса «уезда» карточки начинаем проявлять слеш-строку (0…1).
+const _compactLineRevealStart = 0.35;
+
 /// Главный экран приложения: баланс, запись тапа, журнал и объём за неделю.
 ///
 /// Сам проекцию не смотрит. [LayoutBuilder] выбирает целиком compact или wide
-/// body. Кнопка записи — слот [Scaffold.bottomNavigationBar], не в скролле:
-/// [SafeArea] учитывает home indicator и жестовую навигацию, SnackBar не
-/// накрывает кнопку. Секции внутри body делают `select` своего среза, чтобы
-/// смена кнопки не пересобирала карточку, список и график.
-/// SnackBar и haptic — здесь.
+/// body. Compact: pinned [SliverAppBar] и карточка отдельным sliver; слеш-строка
+/// в title по scroll offset. Кнопка записи — [Scaffold.bottomNavigationBar].
 class HomePage extends ConsumerWidget {
   /// Создаёт главный экран с карточкой, кнопкой записи, журналом и графиком.
   const HomePage({super.key});
@@ -52,16 +66,6 @@ class HomePage extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.homeSettingsTooltip,
-            onPressed: () => context.go('/settings'),
-            icon: const Icon(Icons.settings),
-          ),
-        ],
-      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth >= _homeWideWidth) {
@@ -75,32 +79,102 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-/// Компактный layout главной: колонка баланс → журнал → график.
+/// Компактный layout: pinned-бар → карточка (sliver) → журнал → график.
 ///
-/// Свой [CustomScrollView], список slivers без ветвлений. Кнопка записи
-/// живёт в [_HomeTapBar], не здесь. Проекцию не смотрит — данные берёт
-/// каждая секция через `select`.
-class _HomeCompactBody extends StatelessWidget {
+/// Карточка не в [SliverAppBar.flexibleSpace] — высота intrinsic. Слеш-строка
+/// в title, когда карточка уехала вверх ([_HomeCompactBodyState]).
+class _HomeCompactBody extends StatefulWidget {
   /// Собирает узкую главную.
   const _HomeCompactBody();
 
   @override
+  State<_HomeCompactBody> createState() => _HomeCompactBodyState();
+}
+
+class _HomeCompactBodyState extends State<_HomeCompactBody> {
+  final _balanceCardKey = GlobalKey();
+  double _compactLineOpacity = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _syncCompactLineOpacity(),
+    );
+  }
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0) {
+      return false;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _syncCompactLineOpacity();
+      }
+    });
+    return false;
+  }
+
+  void _syncCompactLineOpacity() {
+    final cardContext = _balanceCardKey.currentContext;
+    if (cardContext == null) {
+      return;
+    }
+    final renderObject = cardContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+
+    final cardTop = renderObject.localToGlobal(Offset.zero).dy;
+    final nextOpacity = _compactLineOpacityForCardTop(cardTop);
+    if ((nextOpacity - _compactLineOpacity).abs() > 0.02) {
+      setState(() => _compactLineOpacity = nextOpacity);
+    }
+  }
+
+  double _compactLineOpacityForCardTop(double cardTop) {
+    final scrollProgress = (1 - cardTop / _balanceToolbarHeight).clamp(
+      0.0,
+      1.0,
+    );
+    return Curves.easeIn.transform(
+      ((scrollProgress - _compactLineRevealStart) /
+              (1 - _compactLineRevealStart))
+          .clamp(0.0, 1.0),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const CustomScrollView(
-      key: Key('home-compact-body'),
-      slivers: [
-        SliverToBoxAdapter(child: _HomeBalanceSection()),
-        _HomeJournalSliverSection(),
-        SliverToBoxAdapter(child: WeekVolumeChart()),
-      ],
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: CustomScrollView(
+        key: const Key('home-compact-body'),
+        slivers: [
+          _HomeSliverAppBar(compactLineOpacity: _compactLineOpacity),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              _balanceHorizontalPadding,
+              0,
+              _balanceHorizontalPadding,
+              _balanceBottomPadding,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: KeyedSubtree(
+                key: _balanceCardKey,
+                child: const _HomeBalanceSection(),
+              ),
+            ),
+          ),
+          const _HomeJournalSliverSection(),
+          const SliverToBoxAdapter(child: WeekVolumeChart()),
+        ],
+      ),
     );
   }
 }
 
-/// Широкий layout главной: баланс и график в ряду, ниже журнал.
-///
-/// Свой [CustomScrollView], список slivers без ветвлений. График только в ряду,
-/// под журналом не дублируется. Кнопка записи — [_HomeTapBar]. Проекцию не смотрит.
+/// Широкий layout главной: pinned-бар, баланс и график в ряду, ниже журнал.
 class _HomeWideBody extends StatelessWidget {
   /// Собирает широкую главную.
   const _HomeWideBody();
@@ -110,6 +184,7 @@ class _HomeWideBody extends StatelessWidget {
     return const CustomScrollView(
       key: Key('home-wide-body'),
       slivers: [
+        _HomeSliverAppBar(),
         SliverToBoxAdapter(
           child: Row(
             key: Key('home-balance-chart-row'),
@@ -122,6 +197,96 @@ class _HomeWideBody extends StatelessWidget {
         ),
         _HomeJournalSliverSection(),
       ],
+    );
+  }
+}
+
+/// Pinned [SliverAppBar]: название, настройки; на compact — слеш-строка в title.
+class _HomeSliverAppBar extends StatelessWidget {
+  /// [compactLineOpacity] задан — compact chrome с двухстрочным title.
+  const _HomeSliverAppBar({this.compactLineOpacity});
+
+  /// Прозрачность слеш-строки; `null` — wide, одна строка title.
+  final double? compactLineOpacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final compactChrome = compactLineOpacity != null;
+    return SliverAppBar(
+      pinned: true,
+      centerTitle: false,
+      clipBehavior: Clip.hardEdge,
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      toolbarHeight: compactChrome ? _balanceToolbarHeight : kToolbarHeight,
+      collapsedHeight: compactChrome ? _balanceToolbarHeight : null,
+      title: compactChrome
+          ? _HomeAppBarTitle(compactLineOpacity: compactLineOpacity!)
+          : const _HomeAppBarTitle(),
+      actions: const [_HomeSettingsButton()],
+    );
+  }
+}
+
+/// Название приложения; на compact — зарезервированный слот слеш-строки.
+class _HomeAppBarTitle extends ConsumerWidget {
+  /// [compactLineOpacity] `null` — wide, только название.
+  const _HomeAppBarTitle({this.compactLineOpacity});
+
+  /// Прозрачность слеш-строки под названием.
+  final double? compactLineOpacity;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final title = Text(l10n.appTitle);
+    if (compactLineOpacity == null) {
+      return title;
+    }
+
+    final compactLine = _compactBalanceLine(context, ref);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        title,
+        SizedBox(
+          height: _compactLineHeight,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Opacity(
+              opacity: compactLine == null ? 0 : compactLineOpacity!,
+              child: Text(
+                compactLine ?? '',
+                key: compactLine == null
+                    ? null
+                    : const Key('today-balance-compact'),
+                style: Theme.of(context).textTheme.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Кнопка настроек в sliver-шапке: переход `go /settings`.
+class _HomeSettingsButton extends StatelessWidget {
+  /// Иконка шестерёнки с l10n tooltip.
+  const _HomeSettingsButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return IconButton(
+      tooltip: l10n.homeSettingsTooltip,
+      onPressed: () => context.go('/settings'),
+      icon: const Icon(Icons.settings),
     );
   }
 }
@@ -151,10 +316,6 @@ class _HomeBalanceSection extends ConsumerWidget {
 }
 
 /// Нижняя панель записи тапа.
-///
-/// Слот [Scaffold.bottomNavigationBar]: SnackBar выезжает над кнопкой.
-/// [SafeArea] отодвигает её от home indicator, жестовой навигации и
-/// скруглений; верх не трогаем — его уже съел [AppBar].
 class _HomeTapBar extends StatelessWidget {
   /// Панель с кнопкой над системным inset.
   const _HomeTapBar();
@@ -173,8 +334,6 @@ class _HomeTapBar extends StatelessWidget {
 }
 
 /// Кнопка «записать тап» с подписью объёма текущей порции.
-///
-/// `select` берёт только [HomeProjection.tapEnabled] и [HomeProjection.buttonClicker].
 class _HomeTapButton extends ConsumerWidget {
   /// Кнопка записи на всю ширину нижней панели.
   const _HomeTapButton();
@@ -207,11 +366,6 @@ class _HomeTapButton extends ConsumerWidget {
 }
 
 /// Список тапов за сегодня и кнопка undo.
-///
-/// `select` берёт журнал и [HomeProjection.undoEnabled],
-/// не трогая карточку и кнопку записи.
-///
-/// Нейминг указывает, что секция является sliver section.
 class _HomeJournalSliverSection extends ConsumerWidget {
   /// Секция журнала со срезом проекции.
   const _HomeJournalSliverSection();
@@ -236,4 +390,20 @@ class _HomeJournalSliverSection extends ConsumerWidget {
       onUndo: () => ref.read(homeControllerProvider.notifier).undo(),
     );
   }
+}
+
+String? _compactBalanceLine(BuildContext context, WidgetRef ref) {
+  final projection = ref.watch(
+    homeProjectionProvider.select((home) => home.balance),
+  );
+  final locale = Localizations.localeOf(context);
+  final ui = HomeUiModelBuilder.balance(
+    projection: projection,
+    l10n: AppLocalizations.of(context),
+    languageCode: locale.languageCode,
+  );
+  return switch (ui) {
+    HomeBalanceUiLines(:final compactLine) => compactLine,
+    _ => null,
+  };
 }
