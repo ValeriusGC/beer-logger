@@ -38,6 +38,13 @@ const _compactLineHeight = 14.0;
 /// С какого прогресса «уезда» карточки начинаем проявлять слеш-строку (0…1).
 const _compactLineRevealStart = 0.35;
 
+/// На сколько увеличить [TextTheme.titleLarge] для «Пивомер» в шапке.
+const _appBarTitleSizeBump = 2.0;
+
+/// Подъём иконки настроек: на compact — к первой строке title, на wide — оптика.
+const _settingsIconLiftCompact = 18.0;
+const _settingsIconLiftWide = 2.0;
+
 /// Главный экран приложения: баланс, запись тапа, журнал и объём за неделю.
 ///
 /// Сам проекцию не смотрит. [LayoutBuilder] выбирает целиком compact или wide
@@ -273,9 +280,18 @@ class _HomeSliverAppBar extends StatelessWidget {
       title: compactChrome
           ? _HomeAppBarTitle(compactLineOpacity: compactLineOpacity!)
           : const _HomeAppBarTitle(),
-      actions: const [_HomeSettingsButton()],
+      actions: [_HomeSettingsButton(compactChrome: compactChrome)],
     );
   }
+}
+
+/// Стиль названия приложения в [SliverAppBar.title].
+TextStyle _homeAppBarTitleStyle(BuildContext context) {
+  final base = Theme.of(context).textTheme.titleLarge!;
+  return base.copyWith(
+    fontSize: (base.fontSize ?? 22) + _appBarTitleSizeBump,
+    height: 1.1,
+  );
 }
 
 /// Название приложения; на compact — зарезервированный слот слеш-строки.
@@ -289,7 +305,8 @@ class _HomeAppBarTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final title = Text(l10n.appTitle);
+    final titleStyle = _homeAppBarTitleStyle(context);
+    final title = Text(l10n.appTitle, style: titleStyle);
     if (compactLineOpacity == null) {
       return title;
     }
@@ -321,15 +338,26 @@ class _HomeAppBarTitle extends ConsumerWidget {
 /// Кнопка настроек в sliver-шапке: переход `go /settings`.
 class _HomeSettingsButton extends StatelessWidget {
   /// Иконка шестерёнки с l10n tooltip.
-  const _HomeSettingsButton();
+  const _HomeSettingsButton({required this.compactChrome});
+
+  /// Compact: иконка на одной линии с «Пивомер», не по центру 72px-тулбара.
+  final bool compactChrome;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return IconButton(
-      tooltip: l10n.homeSettingsTooltip,
-      onPressed: () => context.go('/settings'),
-      icon: const Icon(Icons.settings),
+    final lift = compactChrome ? _settingsIconLiftCompact : _settingsIconLiftWide;
+    return Padding(
+      padding: EdgeInsets.only(bottom: lift),
+      child: IconButton(
+        tooltip: l10n.homeSettingsTooltip,
+        onPressed: () => context.go('/settings'),
+        style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        icon: const Icon(Icons.settings),
+      ),
     );
   }
 }
