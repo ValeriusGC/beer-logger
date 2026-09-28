@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'bounded_contexts/journal/week_charts_fixtures.dart';
+
 PeriodBalances _emptyBalances() {
   return PeriodBalances(
     totalsInBase: {
@@ -35,11 +37,8 @@ void main() {
           currentClickerProvider.overrideWith(
             (ref) => Stream.value(beerHalfLiter()),
           ),
-          volumeForLast7DaysProvider.overrideWithValue(
-            AsyncData([
-              for (var index = 0; index < 7; index++)
-                DayVolume(day: DateTime(2026, 9, 15 + index), liters: 0),
-            ]),
+          weekAxisChartsForLast7DaysProvider.overrideWithValue(
+            AsyncData(emptyWeekAxisCharts()),
           ),
         ],
         child: const MaterialApp(

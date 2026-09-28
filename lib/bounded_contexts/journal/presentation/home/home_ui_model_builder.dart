@@ -49,6 +49,10 @@ class HomeUiModelBuilder {
       ),
       HomeBalanceProjectionReady(:final balances) => HomeBalanceUiLines(
         formatTodayBalanceLines(balances, languageCode: languageCode),
+        compactSegments: formatTodayBalanceCompact(
+          balances,
+          languageCode: languageCode,
+        ),
       ),
     };
   }

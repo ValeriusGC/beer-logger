@@ -4,6 +4,7 @@ import 'package:beer_logger/core/di/now.cg.dart';
 import 'package:beer_logger/core/persistence/app_database.dart';
 import 'package:beer_logger/bounded_contexts/journal/journal.dart';
 import 'package:beer_logger/bounded_contexts/portion/portion.dart';
+import 'package:beer_ledger_core/ledger_axis_kind.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,8 +18,6 @@ Click _recordClick({required String id, required DateTime at}) {
 }
 
 /// In-memory БД и замороженные часы.
-///
-/// Без override [appDatabase] откроет файл, [now] — реальный [DateTime.now].
 ProviderContainer _container({required AppDatabase db, required DateTime now}) {
   return ProviderContainer.test(
     overrides: [
@@ -29,6 +28,13 @@ ProviderContainer _container({required AppDatabase db, required DateTime now}) {
 }
 
 Future<void> _flushWatch() => pumpEventQueue();
+
+WeekAxisChartSeries _series(
+  List<WeekAxisChartSeries> charts,
+  LedgerAxisKind kind,
+) {
+  return charts.firstWhere((series) => series.kind == kind);
+}
 
 void main() {
   late AppDatabase db;
@@ -42,35 +48,39 @@ void main() {
     await db.close();
   });
 
-  group('volumeForLast7Days', () {
-    test('пусто → 7 нулей, дни 15…21 сентября', () async {
+  group('weekAxisChartsForLast7Days', () {
+    test('пусто → 4 оси, 7 нулей, дни 15…21 сентября', () async {
       final container = _container(db: db, now: now);
-      final volumes = await container
-          .listen(volumeForLast7DaysProvider.future, (_, _) {})
+      final charts = await container
+          .listen(weekAxisChartsForLast7DaysProvider.future, (_, _) {})
           .read();
 
-      expect(volumes, hasLength(7));
-      expect(
-        volumes.map((day) => day.day),
-        List.generate(7, (index) => DateTime(2026, 9, 15 + index)),
-      );
-      expect(volumes.map((day) => day.liters), List.filled(7, 0));
+      expect(charts, hasLength(4));
+      for (final series in charts) {
+        expect(series.days, hasLength(7));
+        expect(
+          series.days.map((day) => day.day),
+          List.generate(7, (index) => DateTime(2026, 9, 15 + index)),
+        );
+        expect(series.days.map((day) => day.value), List.filled(7, 0));
+      }
     });
 
-    test('тап 21-го 0.5 L → бар 6, остальные нули', () async {
+    test('тап 21-го → объём 0.5 L, энергия +100, деньги −150, радость +2', () async {
       final container = _container(db: db, now: now);
       final added = await container
           .read(clickRepositoryProvider)
           .addClick(_recordClick(id: 'today', at: DateTime(2026, 9, 21, 18)));
       expect(added.isRight(), isTrue);
 
-      final volumes = await container
-          .listen(volumeForLast7DaysProvider.future, (_, _) {})
+      final charts = await container
+          .listen(weekAxisChartsForLast7DaysProvider.future, (_, _) {})
           .read();
 
-      expect(volumes[6].liters, 0.5);
-      expect(volumes[6].day, DateTime(2026, 9, 21));
-      expect(volumes.take(6).map((day) => day.liters), List.filled(6, 0));
+      expect(_series(charts, LedgerAxisKind.volume).days[6].value, 0.5);
+      expect(_series(charts, LedgerAxisKind.energy).days[6].value, 100);
+      expect(_series(charts, LedgerAxisKind.money).days[6].value, -150);
+      expect(_series(charts, LedgerAxisKind.joy).days[6].value, 2);
     });
 
     test('тап 15-го входит, тап 14-го нет', () async {
@@ -90,13 +100,14 @@ void main() {
       );
       await _flushWatch();
 
-      final volumes = await container
-          .listen(volumeForLast7DaysProvider.future, (_, _) {})
+      final charts = await container
+          .listen(weekAxisChartsForLast7DaysProvider.future, (_, _) {})
           .read();
 
-      expect(volumes.first.liters, 0.5);
-      expect(volumes.first.day, DateTime(2026, 9, 15));
-      expect(volumes.skip(1).map((day) => day.liters), List.filled(6, 0));
+      final volume = _series(charts, LedgerAxisKind.volume);
+      expect(volume.days.first.value, 0.5);
+      expect(volume.days.first.day, DateTime(2026, 9, 15));
+      expect(volume.days.skip(1).map((day) => day.value), List.filled(6, 0));
     });
   });
 }

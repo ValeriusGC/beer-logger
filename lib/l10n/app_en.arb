@@ -110,12 +110,24 @@
   "@settingsSaveError": {
     "description": "SnackBar when saving portion settings fails in the database"
   },
-  "weekChartTitle": "Volume, last 7 days",
-  "@weekChartTitle": {
-    "description": "Title of the home chart of volume over the last 7 local days"
+  "weekChartVolumeTitle": "Volume, last 7 days",
+  "@weekChartVolumeTitle": {
+    "description": "Title of the home week chart for volume"
   },
-  "weekChartLoadError": "Couldn't load the week chart",
+  "weekChartEnergyTitle": "Energy, last 7 days",
+  "@weekChartEnergyTitle": {
+    "description": "Title of the home week chart for energy"
+  },
+  "weekChartMoneyTitle": "Money, last 7 days",
+  "@weekChartMoneyTitle": {
+    "description": "Title of the home week chart for money"
+  },
+  "weekChartJoyTitle": "Joy, last 7 days",
+  "@weekChartJoyTitle": {
+    "description": "Title of the home week chart for joy"
+  },
+  "weekChartLoadError": "Couldn't load the week charts",
   "@weekChartLoadError": {
-    "description": "User-visible error when volumeForLast7DaysProvider fails on home"
+    "description": "User-visible error when weekAxisChartsForLast7DaysProvider fails on home"
   }
 }

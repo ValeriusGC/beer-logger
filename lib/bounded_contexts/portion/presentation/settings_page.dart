@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Максимальная ширина формы и кнопки на экране порции.
+const _settingsContentMaxWidth = 400.0;
+
 /// Экран порции: четыре числа и сохранение.
 ///
 /// Поля заполняются из [currentClicker] один раз. Дальше правка живёт в
@@ -124,44 +127,74 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: clicker == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _field(
-                  controller: _volume,
-                  label: l10n.settingsVolumeLabel,
-                  error: _volumeError,
-                  fieldKey: const Key('settings-volume'),
-                ),
-                const SizedBox(height: 12),
-                _field(
-                  controller: _energy,
-                  label: l10n.settingsEnergyLabel,
-                  helper: l10n.settingsEnergyHelper,
-                  error: _energyError,
-                  fieldKey: const Key('settings-energy'),
-                ),
-                const SizedBox(height: 12),
-                _field(
-                  controller: _money,
-                  label: l10n.settingsMoneyLabel,
-                  error: _moneyError,
-                  fieldKey: const Key('settings-money'),
-                ),
-                const SizedBox(height: 12),
-                _field(
-                  controller: _joy,
-                  label: l10n.settingsJoyLabel,
-                  error: _joyError,
-                  fieldKey: const Key('settings-joy'),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(l10n.settingsSave),
-                ),
-              ],
+          ? const SafeArea(child: Center(child: CircularProgressIndicator()))
+          : SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: _settingsContentMaxWidth,
+                        ),
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          children: [
+                            _field(
+                              controller: _volume,
+                              label: l10n.settingsVolumeLabel,
+                              error: _volumeError,
+                              fieldKey: const Key('settings-volume'),
+                            ),
+                            const SizedBox(height: 12),
+                            _field(
+                              controller: _energy,
+                              label: l10n.settingsEnergyLabel,
+                              helper: l10n.settingsEnergyHelper,
+                              error: _energyError,
+                              fieldKey: const Key('settings-energy'),
+                            ),
+                            const SizedBox(height: 12),
+                            _field(
+                              controller: _money,
+                              label: l10n.settingsMoneyLabel,
+                              error: _moneyError,
+                              fieldKey: const Key('settings-money'),
+                            ),
+                            const SizedBox(height: 12),
+                            _field(
+                              controller: _joy,
+                              label: l10n.settingsJoyLabel,
+                              error: _joyError,
+                              fieldKey: const Key('settings-joy'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: _settingsContentMaxWidth,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _saving ? null : _save,
+                            child: Text(l10n.settingsSave),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }

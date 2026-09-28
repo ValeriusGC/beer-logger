@@ -1,8 +1,16 @@
 import 'package:beer_logger/bounded_contexts/journal/presentation/home/home_ui_model.dart';
 import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_card.dart';
+import 'package:beer_logger/bounded_contexts/journal/presentation/today_balance_format.dart';
 import 'package:beer_logger/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+const _compactSegments = <FormattedAxisValue>[
+  FormattedAxisValue(text: '1.5L', isNegative: false),
+  FormattedAxisValue(text: '+300kcal', isNegative: false),
+  FormattedAxisValue(text: '-450₽', isNegative: true),
+  FormattedAxisValue(text: '+6pt', isNegative: false),
+];
 
 Future<void> _pump(WidgetTester tester, HomeBalanceUiModel balance) {
   return tester.pumpWidget(
@@ -23,12 +31,18 @@ void main() {
   testWidgets('1500 мл, 300000 cal, −45000 коп и joy 6', (tester) async {
     await _pump(
       tester,
-      const HomeBalanceUiLines((
-        volume: '1.5 L (1500 ml)',
-        energy: '+300 kcal',
-        money: '-450 ₽',
-        joy: '+6 pt',
-      )),
+      HomeBalanceUiLines(
+        (
+          volume: FormattedAxisValue(
+            text: '1.5 L (1500 ml)',
+            isNegative: false,
+          ),
+          energy: FormattedAxisValue(text: '+300 kcal', isNegative: false),
+          money: FormattedAxisValue(text: '-450 ₽', isNegative: true),
+          joy: FormattedAxisValue(text: '+6 pt', isNegative: false),
+        ),
+        compactSegments: _compactSegments,
+      ),
     );
 
     expect(_value(tester, 'today-balance-volume'), '1.5 L (1500 ml)');
@@ -37,15 +51,44 @@ void main() {
     expect(_value(tester, 'today-balance-joy'), '+6 pt');
   });
 
+  testWidgets('отрицательные деньги — цвет error', (tester) async {
+    await _pump(
+      tester,
+      HomeBalanceUiLines(
+        (
+          volume: FormattedAxisValue(text: '0 L (0 ml)', isNegative: false),
+          energy: FormattedAxisValue(text: '0 kcal', isNegative: false),
+          money: FormattedAxisValue(text: '-450 ₽', isNegative: true),
+          joy: FormattedAxisValue(text: '0 pt', isNegative: false),
+        ),
+        compactSegments: _compactSegments,
+      ),
+    );
+
+    final money = tester.widget<Text>(find.byKey(const Key('today-balance-money')));
+    final colors = Theme.of(
+      tester.element(find.byKey(const Key('today-balance-money'))),
+    ).colorScheme;
+    expect(money.style?.color, colors.error);
+  });
+
   testWidgets('пустой день — нули, не ошибка и не загрузка', (tester) async {
     await _pump(
       tester,
-      const HomeBalanceUiLines((
-        volume: '0 L (0 ml)',
-        energy: '0 kcal',
-        money: '0 ₽',
-        joy: '0 pt',
-      )),
+      HomeBalanceUiLines(
+        (
+          volume: FormattedAxisValue(text: '0 L (0 ml)', isNegative: false),
+          energy: FormattedAxisValue(text: '0 kcal', isNegative: false),
+          money: FormattedAxisValue(text: '0 ₽', isNegative: false),
+          joy: FormattedAxisValue(text: '0 pt', isNegative: false),
+        ),
+        compactSegments: const [
+          FormattedAxisValue(text: '0L', isNegative: false),
+          FormattedAxisValue(text: '0kcal', isNegative: false),
+          FormattedAxisValue(text: '0₽', isNegative: false),
+          FormattedAxisValue(text: '0pt', isNegative: false),
+        ],
+      ),
     );
 
     expect(_value(tester, 'today-balance-volume'), '0 L (0 ml)');

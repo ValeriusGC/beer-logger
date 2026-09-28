@@ -12,8 +12,8 @@ part of 'record_click.cg.dart';
 ///
 /// Виджет [ClickRepository] не вызывает. Порцию берёт из [currentClicker],
 /// не из зашитого пресета. Баланс за сегодня подхватывает тап сам, через
-/// уже существующий поток. Момент тапа — свежий [now]: провайдер кэшируется,
-/// пока его смотрит экран, поэтому запись его обновляет.
+/// уже существующий поток. Момент тапа — [_tapInstant]: свежие часы,
+/// без [Ref.refresh] кэша [now] в тот же календарный день.
 
 @ProviderFor(RecordClick)
 final recordClickProvider = RecordClickProvider._();
@@ -22,16 +22,16 @@ final recordClickProvider = RecordClickProvider._();
 ///
 /// Виджет [ClickRepository] не вызывает. Порцию берёт из [currentClicker],
 /// не из зашитого пресета. Баланс за сегодня подхватывает тап сам, через
-/// уже существующий поток. Момент тапа — свежий [now]: провайдер кэшируется,
-/// пока его смотрит экран, поэтому запись его обновляет.
+/// уже существующий поток. Момент тапа — [_tapInstant]: свежие часы,
+/// без [Ref.refresh] кэша [now] в тот же календарный день.
 final class RecordClickProvider
     extends $AsyncNotifierProvider<RecordClick, void> {
   /// Запись одного тапа текущей порции в журнал.
   ///
   /// Виджет [ClickRepository] не вызывает. Порцию берёт из [currentClicker],
   /// не из зашитого пресета. Баланс за сегодня подхватывает тап сам, через
-  /// уже существующий поток. Момент тапа — свежий [now]: провайдер кэшируется,
-  /// пока его смотрит экран, поэтому запись его обновляет.
+  /// уже существующий поток. Момент тапа — [_tapInstant]: свежие часы,
+  /// без [Ref.refresh] кэша [now] в тот же календарный день.
   RecordClickProvider._()
     : super(
         from: null,
@@ -51,14 +51,14 @@ final class RecordClickProvider
   RecordClick create() => RecordClick();
 }
 
-String _$recordClickHash() => r'2bc140eba080a689937da42a8418e97dd13e505a';
+String _$recordClickHash() => r'66776dbf8b9451961e870c4cfad9c8c770d5defc';
 
 /// Запись одного тапа текущей порции в журнал.
 ///
 /// Виджет [ClickRepository] не вызывает. Порцию берёт из [currentClicker],
 /// не из зашитого пресета. Баланс за сегодня подхватывает тап сам, через
-/// уже существующий поток. Момент тапа — свежий [now]: провайдер кэшируется,
-/// пока его смотрит экран, поэтому запись его обновляет.
+/// уже существующий поток. Момент тапа — [_tapInstant]: свежие часы,
+/// без [Ref.refresh] кэша [now] в тот же календарный день.
 
 abstract class _$RecordClick extends $AsyncNotifier<void> {
   FutureOr<void> build();

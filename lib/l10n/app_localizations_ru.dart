@@ -90,8 +90,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsSaveError => 'Не удалось сохранить настройки';
 
   @override
-  String get weekChartTitle => 'Объём за 7 дней';
+  String get weekChartVolumeTitle => 'Объём за 7 дней';
 
   @override
-  String get weekChartLoadError => 'Не удалось загрузить график за неделю';
+  String get weekChartEnergyTitle => 'Ккал за 7 дней';
+
+  @override
+  String get weekChartMoneyTitle => 'Деньги за 7 дней';
+
+  @override
+  String get weekChartJoyTitle => 'Радость за 7 дней';
+
+  @override
+  String get weekChartLoadError => 'Не удалось загрузить графики за неделю';
 }

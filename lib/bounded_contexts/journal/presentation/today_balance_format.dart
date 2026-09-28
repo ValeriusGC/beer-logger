@@ -4,12 +4,24 @@ import 'package:beer_logger/bounded_contexts/journal/domain/click/period_balance
 import 'package:beer_ledger_core/beer_ledger_core.dart';
 import 'package:intl/intl.dart';
 
+/// Отформатированное значение оси с семантикой знака для UI.
+final class FormattedAxisValue {
+  /// Создаёт пару «текст + отрицательность».
+  const FormattedAxisValue({required this.text, required this.isNegative});
+
+  /// Готовая подпись с единицей и знаком.
+  final String text;
+
+  /// `true`, если числовое значение строго меньше нуля.
+  final bool isNegative;
+}
+
 /// Строки карточки: объём, энергия, деньги, радость — в порядке пресета.
 typedef TodayBalanceLines = ({
-  String volume,
-  String energy,
-  String money,
-  String joy,
+  FormattedAxisValue volume,
+  FormattedAxisValue energy,
+  FormattedAxisValue money,
+  FormattedAxisValue joy,
 });
 
 /// Переводит суммы [balances] из базовых единиц в подписи карточки.
@@ -49,35 +61,155 @@ TodayBalanceLines formatTodayBalanceLines(
   );
 }
 
-String _volumeLine(double milliliters, String languageCode) {
-  final liters = _amount(
-    fromBase(milliliters, VolumeUnit.liter),
+/// Те же оси, что [formatTodayBalanceLines], для сжатого AppBar.
+///
+/// Четыре сегмента без `/` — разделитель рисует виджет. Объём — только литры.
+List<FormattedAxisValue> formatTodayBalanceCompact(
+  PeriodBalances balances, {
+  required String languageCode,
+}) {
+  return [
+    _compactAxis(
+      fromBase(
+        balances.totalFor(LedgerAxisKind.volume).signedBase,
+        VolumeUnit.liter,
+      ),
+      VolumeUnit.liter,
+      languageCode: languageCode,
+      maximumFractionDigits: 3,
+    ),
+    _compactAxis(
+      fromBase(
+        balances.totalFor(LedgerAxisKind.energy).signedBase,
+        EnergyUnit.kilocalorie,
+      ),
+      EnergyUnit.kilocalorie,
+      languageCode: languageCode,
+      maximumFractionDigits: 0,
+      showPlus: true,
+    ),
+    _compactAxis(
+      fromBase(
+        balances.totalFor(LedgerAxisKind.money).signedBase,
+        MoneyUnit.rouble,
+      ),
+      MoneyUnit.rouble,
+      languageCode: languageCode,
+      maximumFractionDigits: 2,
+    ),
+    _compactAxis(
+      fromBase(
+        balances.totalFor(LedgerAxisKind.joy).signedBase,
+        CountUnit.point,
+      ),
+      CountUnit.point,
+      languageCode: languageCode,
+      maximumFractionDigits: 1,
+      showPlus: true,
+    ),
+  ];
+}
+
+/// Итог оси за неделю в display unit — для заголовка недельного графика.
+FormattedAxisValue formatWeekChartAxisTotal(
+  double sum,
+  LedgerAxisKind kind, {
+  required String languageCode,
+}) {
+  return switch (kind) {
+    LedgerAxisKind.volume => _axisLine(
+      sum,
+      VolumeUnit.liter,
+      languageCode: languageCode,
+      maximumFractionDigits: 3,
+      valueInDisplayUnit: true,
+    ),
+    LedgerAxisKind.energy => _axisLine(
+      sum,
+      EnergyUnit.kilocalorie,
+      languageCode: languageCode,
+      maximumFractionDigits: 0,
+      showPlus: true,
+      valueInDisplayUnit: true,
+    ),
+    LedgerAxisKind.money => _axisLine(
+      sum,
+      MoneyUnit.rouble,
+      languageCode: languageCode,
+      maximumFractionDigits: 2,
+      valueInDisplayUnit: true,
+    ),
+    LedgerAxisKind.joy => _axisLine(
+      sum,
+      CountUnit.point,
+      languageCode: languageCode,
+      maximumFractionDigits: 1,
+      showPlus: true,
+      valueInDisplayUnit: true,
+    ),
+  };
+}
+
+FormattedAxisValue _volumeLine(double milliliters, String languageCode) {
+  final liters = fromBase(milliliters, VolumeUnit.liter);
+  final millilitersDisplay = fromBase(milliliters, VolumeUnit.milliliter);
+  final isNegative = milliliters < 0;
+  final litersText = _amount(
+    liters,
     languageCode: languageCode,
     maximumFractionDigits: 3,
   );
   final millilitersText = _amount(
-    fromBase(milliliters, VolumeUnit.milliliter),
+    millilitersDisplay,
     languageCode: languageCode,
     maximumFractionDigits: 0,
   );
-  return '$liters ${VolumeUnit.liter.symbol} '
-      '($millilitersText ${VolumeUnit.milliliter.symbol})';
+  return FormattedAxisValue(
+    isNegative: isNegative,
+    text:
+        '$litersText ${VolumeUnit.liter.symbol} '
+        '($millilitersText ${VolumeUnit.milliliter.symbol})',
+  );
 }
 
-String _axisLine(
-  double baseValue,
+FormattedAxisValue _axisLine(
+  double value,
+  MeasureUnit unit, {
+  required String languageCode,
+  required int maximumFractionDigits,
+  bool showPlus = false,
+  bool valueInDisplayUnit = false,
+}) {
+  final displayValue = valueInDisplayUnit ? value : fromBase(value, unit);
+  final amount = _amount(
+    displayValue,
+    languageCode: languageCode,
+    maximumFractionDigits: maximumFractionDigits,
+    showPlus: showPlus,
+  );
+  return FormattedAxisValue(
+    isNegative: displayValue < 0,
+    text: '$amount ${unit.symbol}',
+  );
+}
+
+FormattedAxisValue _compactAxis(
+  double displayValue,
   MeasureUnit unit, {
   required String languageCode,
   required int maximumFractionDigits,
   bool showPlus = false,
 }) {
   final amount = _amount(
-    fromBase(baseValue, unit),
+    displayValue,
     languageCode: languageCode,
     maximumFractionDigits: maximumFractionDigits,
     showPlus: showPlus,
   );
-  return '$amount ${unit.symbol}';
+  return FormattedAxisValue(
+    isNegative: displayValue < 0,
+    text: '$amount${unit.symbol}',
+  );
 }
 
 /// [NumberFormat.decimalPattern] на `en` группирует тысячи (`1,500`).
